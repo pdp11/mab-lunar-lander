@@ -1,0 +1,1209 @@
+DR0:[20,1]LANDER.MAC;24                                                  PAGE 9
+
+ 334
+ 335   DISPL1: MOV R5,R1
+ 336           ASL R1
+ 337           MOV ALTLR(R1),R3            ; LOOP TO DISPLAY THE SURFACE (LONG RANGE VIEW.)
+ 338           CLR R2
+ 339           DIV #1000.,R2               ; CONVERT TO SCREEN UNITS (1 S.U. IS 1000 LUNAR UNITS).
+ 340           SUB #24.,R2
+ 341           NEG R2
+ 342           MOV R2,R4
+ 343           CURPOS R5,R4
+ 344           SNDCHR #TERRCH              ; SEND THE TERRAIN CHARACTER
+ 345           DEC R5
+ 346           BEQ DSPL1A
+ 347           JMP DISPL1
+ 348
+ 349   DSPL1A: JMP DISP1
+ 350
+ 351   DISPL2: MOV R5,R1                   ; LOOP TO DISPLAY THE SURFACE (SHORT RANGE VIEW).
+ 352           MUL #6,,R1
+ 353           ADD VIEW,R1
+ 354           MOV (R1)+,R3
+ 355           MOV (R1),TEMP               ; SAVE THE TERRAIN CHARACTER IN TEMP
+ 356           TEMP,R1
+ 357           MOVB TERTBL(R1),TEMP
+ 358           CLR R2
+ 359           DIV #40.,R2
+ 360           SUB #24.,R2
+ 361           NEG R2
+ 362           MOV R2,R4
+ 363           CURPOS R5,R4
+ 364           SNDCHR TEMP
+ 365           DEC R5
+ 366           BEQ DISP1
+ 367           JMP DISPL2
+ 368   DISP1:  CURPOS XPREV,YPREV
+ 369           SNDCHR #40                  ; BLANK OUT OLD SHIP POSITION
+ 370           CURPOS XRPREV,YRPREV
+ 371           SNDCHR #40                  ; AND OLD ROCKET INDICATOR.
+ 372
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 10
+
+ 373
+ 374
+ 375   DISP1B: TST VIEW
+ 376           BEQ 6$
+ 377           MOV #40.,TEMP1
+ 378           MOV #20.,TEMP2
+ 379           BR 7$
+ 380   6$:     MOV #1000.,TEMP1
+ 381           MOV #1000.,TEMP2
+ 382   7$:     MOV XPOS,R0                  ; GET POSITIONS MODULO 1000.
+ 383           TST VIEW
+ 384           BEQ 8$
+ 385           JSR PC,MODULO
+ 386   8$:     MOV R0,R3
+ 387           CLR R2
+ 388           DIV TEMP2,R2                 ; CONVERT SHIP POSITION TO SCREEN COORDINATES.
+ 389           MOV R2,R4
+ 390           MOV YPOS,R0
+ 391           DEC R0
+ 392           BGE 10$
+ 393           CLR R0
+ 394   10$:    TST VIEW
+ 395           BEQ 9$
+ 396           JSR PC,MODULO
+ 397   9$:     CLR R2
+ 398           MOV R0,R3
+ 399           BEQ 11$
+ 400           ADD TEMP1,R3
+ 401           SXT R2
+ 402           DIV TEMP1,R2
+ 403   11$:    SUB #24.,R2
+ 404           NEG R2
+ 405           MOV R2,R5
+ 406           TST R4
+ 407           BGT 1$
+ 408           MOV #1,R4
+ 409   1$:     CMP R4,#49.
+ 410           BLE 2$
+ 411           MOV #49.,R4
+ 412   2$:     TST R5
+ 413           BGT 3$
+ 414           MOV #1,R5
+ 415   3$:     CMP R5,#24.
+ 416           BLE 4$
+ 417           MOV #24.,R5
+ 418   4$:     JSR PC,ALT
+ 419           CURPOS R4,R5                 ; SEND OVER THE SHIP
+ 420           SNDCHR #114                  ; AS AN "L"
+ 421   5$:     MOV R4,XPREV
+
+DR0:[20,1]LANDER.MAC;24                                             PAGE 10 - 1
+
+ 422           MOV R5,YPREV
+ 423
+ 424           TST FUEL
+ 425           BEQ DISP2                    ; IF NO FUEL LEFT, DON'T DISPLAY ROCKET INDICATOR.
+ 426
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 11
+
+ 427
+ 428   DISP1A: MOV ENGIN,R0
+ 429           DEC R0
+ 430           ASL R0
+ 431           MOV SINTAB(R0),R3
+ 432           SXT R2
+ 433           DIV #552,R2                  ; TAKING THE INTEGER FUNCTION OF SIN, COS
+ 434           SUB R2,R4                    ; TO COMPUTE WHICH INDICATOR TO DISPLAY
+ 435           MOV COSTAB(R0),R3
+ 436           SXT R2
+ 437           DIV #552,R2
+ 438           ADD R2,R5
+ 439           JSR PC,ALT
+ 440           CMP R1,TEMP1
+ 441           BLT DISP2
+ 442           CURPOS R4,R5
+ 443           SNDCHR #56                   ; SEND A "." AS ROCKET FIRING INDICATOR
+ 444           MOV R4,XRPREV
+ 445           MOV R5,YRPREV
+ 446
+ 447   DISP2:  CMP TICROT,DELCT             ; TIME TO SEND OVER VITAL STATS?
+ 448           BGE DISP2A
+ 449           JMP DSPEND
+ 450   DISP2A: CLR TICROT                   ; SENDING OVER VITAL STATISTICS ABOUT THE SHIP
+ 451           CURPOS #68.,#6.
+ 452           MOV XVEL,TEMP
+ 453           ASL TEMP
+ 454           SNDNUM TEMP
+ 455           SNDSTR #SPC
+ 456           CURPOS #68.,#7.
+ 457           MOV YVEL,TEMP
+ 458           ASL TEMP
+ 459           SNDNUM TEMP
+ 460           SNDSTR #SPC
+ 461           CURPOS #68.,#9.
+ 462           MOV THRUST,TEMP
+ 463           ASL TEMP
+ 464           SNDNUM TEMP
+ 465           SNDSTR #SPC
+ 466           CURPOS #68.,#11.
+ 467           SNDABS XPOS
+ 468           SNDSTR #SPC
+ 469           CURPOS #68.,#12.
+ 470           SNDNUM YPOS
+ 471           SNDSTR #SPC
+ 472           CURPOS #68.,#13.
+ 473           SNDNUM ALTUDE
+ 474           SNDSTR #SPC
+ 475           CURPOS #68.,#15.
+
+DR0:[20,1]LANDER.MAC;24                                             PAGE 11 - 1
+
+ 476           SNDNUM FUEL
+ 477           SNDSTR #SPC
+ 478           CURPOS #99.,#99.
+ 479
+ 480   DSPEND: RTS PC
+ 481
+ 482
+ 483
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 12
+
+ 484
+ 485   ; COMPUTE THE ALTITUDE OF THE SHIP. RETURNS ALTITUDE IN R1, TERRAIN CHARACTER IN R0
+ 486   ; RETURNS SUBR TO CALL IF LANDED IN SUBR.
+ 487
+ 488   ALT:    PUSH R2
+ 489           PUSH R3
+ 490           PUSH R4
+ 491           PUSH R5
+ 492           MOV XPOS,R1
+ 493           CLR R0
+ 494           DIV #1000.,R0
+ 495           MOV R0,R3
+ 496           MOV YPOS,R1
+ 497           ASL R0
+ 498           SUB ALTLR(R0),R1
+ 499           CMP R1,#1000.
+ 500           BGE ALTDN
+ 501           MOV ALTSR(R0),R2
+ 502           BEQ ALTDN
+ 503           MUL #1000.,R3
+ 504           MOV XPOS,R5
+ 505           SUB R3,R5
+ 506           CLR R4
+ 507           DIV #10.R4
+ 508           MOV R4,R3
+ 509           MUL #6,R3
+ 510           ADD R3,R2
+ 511           SUB (R2)+,R1
+ 512           MOV (R2)+,R0
+ 513           MOV (R2),SUBR
+ 514
+ 515   ALTDN:  POP R5
+ 516           POP R4
+ 517           POP R3
+ 518           POP R2
+ 519           RTS PC
+ 520
+ 521   ; COMPUTE THE VALUE OF R0 MOD 1000., RETURNS RESULT IN R0
+ 522
+ 523   MODULO: PUSH R2
+ 524           PUSH R3
+ 525           MOV R0,R3
+ 526           CLR R2
+ 527           DIV #1000.,R2
+ 528           MOV R2,R3
+ 529           MUL #1000.,R3
+ 530           SUB R3,R0
+ 531           POP R3
+ 532           POP R2
+
+DR0:[20,1]LANDER.MAC;24                                             PAGE 12 - 1
+
+ 533           RTS PC
+ 534
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 13
+
+ 535
+ 536   ; TYPE AN ASCIZ STRING POINTED TO BY R0
+ 537
+ 538   TYPE:   CLR BUFCTR
+ 539           MOV R0,BUFPTR
+ 540
+ 541   1$:     TSTB (R0)+
+ 542           BEQ 2$
+ 543           INC BUFCTR
+ 544           BR 1$
+ 545
+ 546   2$:     QIOQ$S :IO.WVB,#1,#1,,,,<BUFPTRF,BUFCTR>
+ 547           RTS PC
+ 548
+ 549
+ 550   ; CONVERT A NUMBER TO AN ASCIZ STRING.  NUMBER IN R1,POINTER TO STRING
+ 551   ; TO RETURN IN R0. PRINTS UNSIGNED NUMBERS IF ABSFLG IS SET.
+ 552
+ 553   NUMSTR: PUSH R0
+ 554           PUSH R2
+ 555           PUSH R3
+ 556           CLR -(SP)
+ 557           CLR NEGFL
+ 558           TST ABSFLG
+ 559           BNE 1$
+ 560           TST R1
+ 561           BPL 1$
+ 562           INC NEGFL
+ 563           NEG R1
+ 564   1$:     MOV R1,R3
+ 565           CLR R2
+ 566   NS1:    DIV #10.,R2
+ 567           ADD $60,R3
+ 568           PUSH R3
+ 569           TST R2
+ 570           BEQ NS2
+ 571           MOV R2,R3
+ 572           CLR R2
+ 573           BR NS1
+ 574
+ 575   NS2:    TST NEGFL
+ 576           BEQ NS3
+ 577           MOVB #55,(R0)+
+ 578   NS3:    POP R2
+ 579           MOVB R2,(R0)+
+ 580           TSTB R2
+ 581           BNE NS3
+ 582           POP R3
+ 583           POP R2
+
+DR0:[20,1]LANDER.MAC;24                                             PAGE 13 - 1
+
+ 584           POP R0
+ 585           RTS PC
+ 586
+ 587
+ 588
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 14
+
+ 589
+ 590   MAC1:   SNDSTR #MACMS
+ 591           CLR CLKCNT
+ 592   1$:     CMP CLKCNT,#360.
+ 593           BLT 1$
+ 594           MOV #10.,YVEL
+ 595           MOV #12.,THRUST
+ 596           MOV #1,ENGIN
+ 597           CLR XVEL
+ 598           ADD #10.,YPOS
+ 599           SNDSTR #MACMS2
+ 600           RTS PC
+ 601
+ 602   MAC2:   SNDSTR #MACMS3
+ 603           INC COLFLG
+ 604           CLR RESFLG
+ 605           CLR FUEL
+ 606           CLR THRUST
+ 607           RTS PC
+ 608
+ 609   WBS1:   SNDSTR #WBSMS
+ 610           INC COLFLG
+ 611           CLR RESFLG
+ 612           CLR FUEL
+ 613           CLR THRUST
+ 614           RTS PC
+ 615
+ 616   WBS2:   SNDSTR #WBSMS2
+ 617           INC COLFLG
+ 618           CLR RESFLG
+ 619           CLR FUEL
+ 620           CLR THRUST
+ 621           RTS PC
+ 622
+ 623   GAS1:   SNTSTR #GASMS
+ 624           CLR CLKCNT
+ 625   1$:     CMP CLKCNT,#240.
+ 626           BLT 1$
+ 627           MOV #10.,YVEL
+ 628           MOV #12.,THRUST
+ 629           MOV #1,ENGIN
+ 630           CLR XVEL
+ 631           MOV #2000.,FUEL
+ 632           ADD #10.,YPOS
+ 633           SNDSTR #GASMS2
+ 634           RTS PC
+ 635
+ 636   GAS2:   SNDSTR #GASMS3
+ 637           INC COLFLG
+
+DR0:[20,1]LANDER.MAC;24                                             PAGE 14 - 1
+
+ 638           CLR RESFLG
+ 639           CLR FUEL
+ 640           CLR THRUST
+ 641           RTS PC
+ 642
+ 643
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 15
+
+ 644
+ 645   ; POSITION IN R0, R1 (X, Y). POSITION THE CURSOR THERE.
+ 646
+ 647   POSCUR: PUSH R2
+ 648           PUSH R5
+ 649           MOV #CPMS1,R2
+ 650           MOV R0,R5
+ 651           MOV #WRKSTR,R0
+ 652           JSR PC,NUMSTR
+ 653           TSTB WRKSTR
+ 654           BEQ PC1
+ 655           MOVB WRKSTR,(R2)+
+ 656           TSTB WRKSTR+1
+ 657           BEQ PC1
+ 658           MOVB WRKSTR+1,(R2)+
+ 659
+ 660   PC1:    MOVB #73,(R2)+
+ 661           MOV R5,R1
+ 662           MOV #WRKSTR,R0
+ 663           JSR PC,NUMSTR
+ 664           TSTB WRKSTR
+ 665           BEQ BC2
+ 666           MOVB WRKSTR,(R2)+
+ 667           TSTB WRKSTR+1
+ 668           BEQ PC2
+ 669           MOVB WRKSTR+1,(R2)+
+ 670
+ 671   PC2:    MOVB #146,(R2)+
+ 672           CLRB (R2)+
+ 673           SNDSTR #CPMS
+ 674           POP R5
+ 675           POP R2
+ 676           RTS PC
+ 677
+ 678   MTNTOP: SNDSTR #MTNMS
+ 679           CLR THRUST
+ 680           INC COLFLG
+ 681           CLR RESFLG
+ 682           RTS PC
+ 683
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 16
+
+ 684
+ 685   ;  ***************************************
+ 686   ;  *                                     *
+ 687   ;  *       AST INTERRUPT ROUTINES        *
+ 688   ;  *                                     *
+ 689   ;  ***************************************
+ 690
+ 691
+ 692   CLKINT: INC CLKCNT
+ 693           TST (SP)+
+ 694           MRKT$C 2,1,1,CLKINT
+ 695           ASTX$S
+ 696
+ 697
+ 698   TTYINT: PUSH R0
+ 69O           MOVE 2(SP),R0
+ 700           BIC #177400,R0
+ 701           CMP R0,#3
+ 702           BNE TTYI1
+ 703           CLRSCR                      ; HERE FOR CNTRL-C TO RETURN TO MCR 
+ 704           SNDSTR #VT52
+ 705           EXIT$S
+ 706
+ 707   TTYI1:  CMP R0,#101
+ 708           BNE TTYI2
+ 709           INC THRUST                  ; UP-ARROW INCREASES THRUST
+ 710           CMP THRUST,#15.
+ 711           BLE 1$
+ 712           MOV #15.,THRUST
+ 713   1$:     JMP TTYION
+ 714
+ 715   TTYI2:  CMP R0,#102                 ; DOWN-ARROW INCREASES THRUST
+ 716           BNE TTYI3
+ 717           DEC THRUST
+ 718           BGT 1$
+ 719           MOV #1,THRUST
+ 720   1$:     JMP TTYIDN
+ 721
+ 722
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 17
+
+ 723
+ 724   TTYI3:  CMP R0,#103                 ; RIGHT-ARROW ROTATES ENGINE COUNTER-CLOCKWISE
+ 725           BNE TTYI4
+ 726           INC ENGIN
+ 727           CMP ENGIN,#8.
+ 728           BLE 1$
+ 729           MOV #1,ENGIN
+ 730   1$:     JMP TTYIDN
+ 731
+ 732   TTYI4:  CMP R0,#104                 ; LEFT-ARROW ROTATES ENGINE CLOCKWISE
+ 733           BNE TTYI5
+ 734           DEC ENGIN
+ 735           BGT 1$
+ 736           MOV #8.,ENGIN
+ 737   1$:     JMP TTIDN
+ 738
+ 739   TTYI5:  CMP R0,$40
+ 740           BNE TTYI6
+ 741           INC RESFLG
+ 742           JMP TTYIDN
+ 743
+ 744   TTYI6:  CMP R0,#61
+ 745           BLT TTYIDN
+ 746           CMP R0,#71
+ 747           BGT TTYIDN
+ 748           SUB #60,R0
+ 749           MOV R0,DELCT
+ 750
+ 751   TTYIDN: POP R0
+ 752           TST (SP)+
+ 753           ASTX$S
+ 754
+ 755
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 18
+
+ 756
+ 757   ; **********************************
+ 758   ; *                                *
+ 759   ; *      VARIABLES, ARRAYS, DATA   *
+ 760   ; *                                *
+ 761   ; **********************************
+ 762
+ 763
+ 764   WRKSTR: .BLKB 30
+ 765   WRKST1: 0
+ 766   BUFPTR: 0
+ 767   BUFCTR: 0
+ 768   FUELMX: 2000.                       ; INITIAL FUEL ALLOCATION
+ 769   FUEL:   0                           ; CURRENT FUEL REMAINING
+ 770   XPOSI:  1000.                       ; INITIAL X POSITION
+ 771   XPOS:   0                           ; CURRENT X POSITION
+ 772   YPOSI:  24000.                      ; INITIAL Y POSITION
+ 773   YPOS:   0                           ; CURRENT Y POSITION
+ 774   XVELI:  600.                        ; INITIAL X VELOCITY
+ 775   XVEL:   0                           ; CURRENT X VELOCITY
+ 776   YVELI:  -350.                       ; INITIAL Y VELOCITY
+ 777   YVEL:   0                           ; CURRENT Y VELOCITY
+ 778   ENGIN:  0                           ; WHICH ENGINE IS FIRING?
+ 779   GRAV:   -2                          ; ACCELERATION DUE TO GRAVITY
+ 780   THRSTI: 12.                         ; INITIAL THRUST
+ 781   THRUST: 0                           ; CURRENT THRUST
+ 782   COLFLG: 0                           ; COLLITION HAS OCCURRED.
+ 783   TICKS:  0
+ 784   RESFLG: 0                           ; SET TO PLAY A NEW GAME
+ 785   HDRFLG: 0                           ; NEED TO DISPLAY SCREEN HEADERS
+ 786   XPREV:  0                           ; SAVES OLD X POS. OF SHIP
+ 787   YPREV:  0                           ; SAVES OLD Y POS. OF SHIP
+ 788   XRPREV: 0                           ; SAVES OLD X POS. OF ROCKET INDICATOR
+ 789   YRPREV: 0                           ; SAVES OLD Y POS. OF ROCKET INDICATOR
+ 790   CLKCNT: 0
+ 791   NEGFL:  0
+ 792   TEMP:   0
+ 793   TEMP1:  0
+ 794   TEMP2:  0
+ 795   ABSFLG: 0
+ 796   VIEW:   0                           ; ADDRESS OF SHORT RANGE VIEW TABLE, OR 0 IF LONG RANGE VIEW
+ 797   SUBR:   0                           ; CONTAINS SUBROUTINE TO EXECUTE
+ 798   ALTUDE: 0                           ; SAVES THE ALTITUDE
+ 799   DELCT:  1                           ; DELAY COUNT FOR DISPLAYING VITALS STATS (1 IF NON-REMOTE TERMINAL)
+ 800   TICROT: 0
+ 801
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 19
+
+ 802
+ 803
+ 804   SINTAB: 0                           ; TABLE OF SINES, IN OCTAL, TIMES OCTAL 1000
+ 805           -552
+ 806           -1000
+ 807           -552
+ 808           0
+ 809           552
+ 810           1000
+ 811           552
+ 812
+ 813   COSTAB: 1000                        ; TABLE OF COSINES, IN OCTAL, TIMES OCTAL 1000
+ 814           552
+ 815           0
+ 816           -552
+ 817           -1000
+ 818           -552
+ 819           0
+ 820           552
+ 821           
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 20
+
+ 822
+ 823   ALTLR:  4000.,3000.,2000.,2000.,2000.,3000.,4000.,3000.,3000.,3000.,2000.,1000.,1000.,0,0,0,0,0,0,0
+ 824           0,0,0,2000.,3000.,4000.,3000.,2000.,0,0,0,0,0,0,0,0,0,0,0,0
+ 825           0,0,0,1000.,2000.,3000.,4000.,5000.,5000.,6000.
+ 826
+ 827   ALTSR:  0,0,ALT1,ALT2,ALT3,0,0,ALT4,ALT5,ALT6,0,0,0,0,ALT7,ALT8,ALT9,ALT10,ALT11,ALT12
+ 828           ALT13,ALT14,0,0,0,ALT15,0,0,0,ALT16,ALT17,ALT18,ALT19,ALT20,ALT21,ALT22
+ 829           ALT23,ALT24,ALT25,ALT26,ALT27,ALT28,0,0,0,0,0,ALT29,ALT30,0
+ 830
+ 831   ; SHORT RANGE ALTITUDE RABLES.  EACH TABLE IS POITED TO BY AN ENTRY IN ALTSR,
+ 832   ; AND CONSITS OF 3 WORDS FOR EACH X GRADATION: ALTITUDE, CHRACTER TO DISPLAY
+ 833   ; (THIS SECOND WORD IS AN INDEX INTO TERTBL) AND POINTER TO SUBROUTINE TO CALL
+ 834   ; IF A LANDING OCCURS THERE. AN X GRADATION HERE IS 20, AND A Y GRADATION
+ 835   ; IS 40.
+ 836
+ 837
+ 838           .NLIST BEX
+ 839
+ 840           .RADIX 10
+ 841
+ 842   ALT1:   ROCK 2,280
+ 843           ROCK 1,240
+ 844           ROCK 1,200
+ 845           ROCK 2,160
+ 846           ROCK 2,120
+ 847           ROCK 4,80
+ 848           ROCK 2,40
+ 849           ROCK 2,80
+ 850           ROCK 2,40
+ 851           ROCK 2,80
+ 852           ROCK 2,120
+ 853           ROCK 2,80
+ 854           ROCK 2,40
+ 855           FLAG 10,40
+ 856           FLAT 8,0
+ 857           ROCK 6,40
+ 858
+ 859   ALT2:   ROCK 10,40
+ 860           FLAT 8,40
+ 861           FLAT 7,0
+ 862           ROCK 1,0
+ 863           FLAG 3,0
+ 864           ROCK 2,0
+ 865           FLAT 4,0
+ 866           0,0,GAS1
+ 867           0,0,GAS1
+ 868           0,0,GAS1
+ 869           0,0,GAS1
+ 870           0,0,GAS1
+
+DR0:[20,1]LANDER.MAC;24                                             PAGE 20 - 1
+
+ 871           0,4,GAS2
+ 872           0,0,GAS1
+ 873           0,0,GAS1
+ 874           0,0,GAS1
+ 875           0,0,GAS1
+ 876           0,0,GAS1
+ 877           ROCK 4,0
+ 878
+ 879
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 21
+
+ 880
+ 881   ALT3:   ROCK 3,0
+ 882           FLAT 4,9
+ 883           ROCK 3,40
+ 884           FLAT 12,40
+ 885           ROCK 1,80
+ 886           FLAT 5,80
+ 887           ROCK 1,80
+ 888           FLAG 5,80
+ 889           ROCK 1,120
+ 890           ROCK 15,160
+ 891
+ 892
+ 893   ALT4:   ROCK 8,240
+ 894           ROCK 3,200
+ 895           ROCK 1,160
+ 896           ROCK 2,120
+ 897           FLAT 5,80
+ 898           ROCK 2,80
+ 899           FLAG 5,40
+ 900           FLAT 3,0
+ 901           ROCK 1,40
+ 902           FLAG 8,40
+ 903           ROCK 6,80
+ 904           FLAT 6,80
+ 905
+ 906   ALT5:   FLAT 5,80
+ 907           ROCK 2,80
+ 908           FLAT 3,80
+ 909           ROCK 6,40
+ 910           FLAT 2,40
+ 911           ROCK 2,40
+ 912           FLAT 4,0
+ 913           ROCK 1,0
+ 914           FLAT 7,0
+ 915           ROCK 2,0
+ 916           FLAT 5,40
+ 917           ROCK 2,40
+ 918           FLAT 9,40
+ 919
+ 920   ALT6:   ROCK 4,40
+ 921           FLAT 5,80
+ 922           ROCK 1,40
+ 923           FLAT 4,40
+ 924           ROCK 1,40
+ 925           FLAT 6,40
+ 926           ROCK 1,80
+ 927           FLAT 3,80
+ 928           ROCK 6,80
+
+DR0:[20,1]LANDER.MAC;24                                             PAGE 21 - 1
+
+ 929           FLAT 5,40
+ 930           ROCK 3,0
+ 931           FLAT 5,0
+ 932           ROCK 6,0
+ 933
+ 934
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 22
+
+ 935
+ 936   ALT7:   FLAT 3,0
+ 937           ROCK 1,0
+ 938           FLAT 3,0
+ 939           FLAT 5,40
+ 940           ROCK 3,40
+ 941           ROCK 5,80
+ 942           ROCK 2,40
+ 943           FLAT 3,40
+ 944           ROCK 4,0
+ 945           FLAT 5,0
+ 946           ROCK 2,40
+ 947           ROCK 1,80
+ 948           ROCK 2,120
+ 949           FLAT 3,120
+ 950           ROCK 1,120
+ 951           ROCK 3,80
+ 952           ROCK 2,40
+ 953           FLAT 2,40
+ 954
+ 955   ALT8:   FLAT 3,40
+ 956           ROCK 4,80
+ 957           FLAT 3,40
+ 958           ROCK 1,40
+ 959           FLAT 10,40
+ 960           ROCK 1,40
+ 961           ROCK 1,80
+ 962           FLAT 6,80
+ 963           ROCK 3,80
+ 964           FLAT 11,80
+ 965           ROCK 2,80
+ 966           ROCK 2,40
+ 967           FLAT 3,40
+ 968
+ 969   ALT9:   FLAT 5,40
+ 970           ROCK 2,40
+ 971           FLAT 8,0
+ 972           ROCK 1,0
+ 973           FLAT 5,0
+ 974           ROCK 1,0
+ 975           ROCK 1,40
+ 976           ROCK 1,80
+ 977           ROCK 2,40
+ 978           FLAT 3,40
+ 979           ROCK 1,80
+ 980           FLAT 10,80
+ 981           ROCK 1,80
+ 982           FLAT 1,80
+ 983
+ 984
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 23
+
+ 985
+ 986   ALT10:  FLAT 5,80
+ 987           ROCK 1,80
+ 988           ROCK 1,120
+ 989           ROCK 1,160
+ 990           FLAT 5,160
+ 991           ROCK 1,120
+ 992           ROCK 1,80
+ 993           ROCK 1,40
+ 994           40,0,WBS1
+ 995           40,0,WBS1
+ 996           40,0,WBS1
+ 997           40,0,WBS1
+ 998           40,0,WBS1
+ 999           40,0,WBS1
+1000           40,3,WBS2
+1001           40,0,WBS1
+1002           40,0,WBS1
+1003           40,0,WBS1
+1004           40,0,WBS1
+1005           40,0,WBS1
+1006           ROCK 1,80
+1007           ROCK 1,120
+1008           FLAT 7,120
+1009           ROCK 1,120
+1010           FLAT 3,120
+1011           ROCK 1,160
+1012           FLAT 5,160
+1013           ROCK 3,160
+1014
+1015
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 24
+
+1016
+1017   ALT11:  ROCK 1,200
+1018           ROCK 1,240
+1019           ROCK 1,280
+1020           ROCK 2,320
+1021           FLAT 4,320
+1022           ROCK 2,320
+1023           ROCK 2,360
+1024           ROCK 1,400
+1025           ROCK 2,440
+1026           RCK 1,480
+1027           ROCK 1,520
+1028           ROCK 1,600
+1029           ROCK 2,640
+1030           FLAT 3,640
+1031           ROCK 1,680
+1032           ROCK 2,720
+1033           FLAT 8,720
+1034           ROCK 1,680
+1035           ROCK 1,600
+1036           ROCK 1,520
+1037           ROCK 2,480
+1038           ROCK 1,440
+1039           ROCK 2,400
+1040           ROCK 1,360
+1041           FLAT 4,360
+1042           ROCK 2,320
+1043
+1044
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 25
+
+1045
+1046   ALT12:  ROCK 3,320
+1047           ROCK 1,360
+1048           ROCK 1,400
+1049           ROCK 1,440
+1050           ROCK 1,400
+1051           ROCK 1,320
+1052           ROCK 1,240
+1053           ROCK 1,200
+1054           ROCK 2,160
+1055           ROCK 5,120
+1056           ROCK 3,80
+1057           FLAT 10,80
+1058           FLAT 5,40
+1059           ROCK 1,40
+1060           FLAT 3,40
+1061           ROCK 3,80
+1062           FLAT 8,80
+1063
+1064   ALT13:  FLAT 7,80
+1065           ROCK 3,80
+1066           ROCK 1,40
+1067           FLAT 8,40
+1068           ROCK 1,80
+1069           ROCK 1,120
+1070           ROCK 1,160
+1071           FLAT 5,160
+1072           ROCK 2,120
+1073           FLAT 6,120
+1074           ROCK 3,160
+1075           FLAT 12,160
+1076
+1077   ALT14:  FLAT 3,160
+1078           ROCK 1,80
+1079           FLAT 8,80
+1080           ROCK 1,80
+1081           FLAT 3,80
+1082           ROCK 1,40
+1083           FLAT 6,40
+1084           ROCK 1,40
+1085           FLAT 14,40
+1086           ROCK 1,40
+1087           FLAT 4,40
+1088           ROCK 1,0
+1089           FLAT 6,0
+1090
+1091
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 26
+
+1092
+1093   ALT15:  ROCK 8,0
+1094           ROCK 6,40
+1095           ROCK 1,80
+1096           ROCK 1,120
+1097           ROCK 1,160
+1098           ROCK 1,240
+1099           ROCK 2,280
+1100           ROCK 5,320
+1101           ROCK 1,360
+1102           ROCK 1,400
+1103           ROCK 1,440
+1104           ROCK 1,480
+1105           ROCK 1,520
+1106           ROCK 2,560
+1107           560,0,MTNTOP
+1108           560,0,MTNTOP
+1109           560,0,MTNTOP
+1110           ROCK 1,560
+1111           ROCK 1,520
+1112           ROCK 1,440
+1113           ROCK 3,400
+1114           ROCK 1,360
+1115           ROCK 1,320
+1116           ROCK 1,280
+1117           ROCK 2,240
+1118           ROCK 2,200
+1119
+1120   ALT16:  FLAT 7,0
+1121           ROCK 1,0
+1122           FLAT 3,0
+1123           ROCK 2,40
+1124           ROCK 1,80
+1125           ROCK 1,40
+1126           FLAT 3,40
+1127           ROCK 3,80
+1128           ROCK 1,120
+1129           FLAT 2,80
+1130           ROCK 1,80
+1131           ROCK 5,40
+1132           ROCK 3,0
+1133           FLAT 6,0
+1134           ROCK 3,0
+1135           FLAT 8,0
+1136
+1137   ALT17:  FLAT 14,0
+1138           ROCK 1,0
+1139           FLAT 11,0
+1140           ROCK 1,0
+
+DR0:[20,1]LANDER.MAC;24                                             PAGE 26 - 1
+
+1141           ROCK 1,40
+1142           FLAT 3,40
+1143           ROCK 1,40
+1144           ROCK 1,0
+1145           FLAT 12,0
+1146           ROCK 1,0
+1147           FLAT 4,0
+1148
+1149   ALT18:  FLAT 9,0
+1150
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 27
+
+1151
+1152           ROCK 1,0
+1153           FLAT 7,0
+1154           ROCK 1,0
+1155           FLAT 6,0
+1156           ROCK 1,40
+1157           FLAT 5,40
+1158           ROCK 1,40
+1159           FLAT 19,40
+1160
+1161   ALT19:  FLAT 6,40
+1162           ROCK 1,40
+1163           FLAT 5,80
+1164           ROCK 1,80
+1165           FLAT 15,80
+1166           ROCK 1,80
+1167           ROCK 1,120
+1168           FLAT 9,120
+1169           ROCK 3,80
+1170           FLAT 7,80
+1171
+1172   ALT20:  FLAT 22,80
+1173           ROCK 1,80
+1174           ROCK 1,40
+1175           FLAT 6,40
+1176           ROCK 1,40
+1177           FLA 11,40
+1178           ROCK 2,0
+1179           FLAT 6,0
+1180
+1181   ALT21:  FLAT 27,0
+1182           0,0,MAC1
+1183           0,0,MAC1
+1184           0,0,MAC1
+1185           0,0,MAC1
+1186           0,0,MAC1
+1187           0,2,MAC2
+1188           0,0,MAC1
+1189           0,0,MAC1
+1190           0,0,MAC1
+1191           0,0,MAC1
+1192           0,0,MAC1
+1193           FLAT 12,0
+1194
+1195   ALT22:  FLAT 12,0
+1196           ROCK 1,0
+1197           FLAT 6,0
+1198           ROCK 1,40
+1199           FLAT 15,40
+
+DR0:[20,1]LANDER.MAC;24                                             PAGE 27 - 1
+
+1200           ROCK 3,40
+1201           ROCK 1,0
+1202           FLAT 11,0
+1203
+1204   ALT23:  FLAT 12,0
+1205           ROCK 1,0
+1206           FLAT 6,0
+1207           ROCK 1,40
+1208           ROCK 1,80
+1209           ROCK 1,120
+1210           FLAT 5,120
+1211           ROCK 1,120
+1212           FLAT 6,120
+1213           ROCK 1,120
+1214           FLAT 3,120
+1215           ROCK 1,120
+1216           ROCK 1,80
+1217           ROCK 1,40
+1218           FLAT 7,40
+1219
+1220
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 28
+
+1221
+1222   ALT24:  FLAT 4,40
+1223           ROCK 1,40
+1224           ROCK 1,0
+1225           FLAT 16,0
+1226           ROCK 3,0
+1227           ROCK 1,40
+1228           FLAT 5,40
+1229           ROCK 1,80
+1230           FLAT 10,80
+1231
+1232   ALT25:  FLAT 10,80
+1233           ROCK 1,80
+1234           FLAT 3,80
+1235           ROCK 1,120
+1236           ROCK 1,40
+1237           ROCK 2,0
+1238           FLAT 12,0
+1239           ROCK 1,0
+1240           FLAT 19,0
+1241
+1242   ALT26:  FLAT 5,0
+1243           ROCK 1,0
+1244           FLAT 8,0
+1245           ROCK 1,0
+1246           FLAT 9,0
+1247           ROCK 1,40
+1248           FLAT 13,40
+1249           ROCK 1,40
+1250           FLAT 11,40
+1251
+1252   ALT27:  FLAT 3,40
+1253           ROCK 2,40
+1254           ROCK 1,0
+1255           FLAT 8,0
+1256           ROCK 3,0
+1257           FLAT 11,0
+1258           ROCK 2,0
+1259           FLAT 13,0
+1260           ROCK 1,0
+1261           ROCK 1,40
+1262           FLAT 4,40
+1263
+1264   ALT28:  FLAT 6,40
+1265           ROCK 1,80
+1266           ROCK 1,120
+1267           FLAT 5,120
+1268           ROCK 3,120
+1269           FLAT 2,120
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 28 - 1
+
+1270           ROCK 1,160
+1271           FLAT 7,160
+1272           ROCK 5,160
+1273           FLAT 3,160
+1274           ROCK 1,160
+1275           ROCK 1,200
+1276           FLAT 3,200
+1277           ROCK 5,200
+1278           ROCK 1,240
+1279           ROCK 5,280
+1280
+1281
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 29
+
+1282
+1283   ALT29:  FLAT 3,120
+1284           ROCK 6,160
+1285           FLAT 8,160
+1286           ROCK 3,160
+1287           ROCK 4,200
+1288           ROCK 3,240
+1289           FLAT 10,240
+1290           ROCK 8,240
+1291           FLAT 5,240
+1292
+1293   ALT30:  ROCK 6,240
+1294           FLAT 5,240
+1295           ROCK 2,240
+1296           ROCK 1,200
+1297           ROCK 1,160
+1298           ROCK 1,120
+1299           FLAT 8,120
+1300           ROCK 1,120
+1301           ROCK 1,160
+1302           ROCK 1,200
+1303           ROCK 4,240
+1304           ROCK 5,280
+1305           ROCK 4,320
+1306           FLAT 5,320
+1307           ROCK 5,320
+1308
+1309
+1310
+1311           .RADIX 8
+1312
+1313
+1314   ; TERRAIN TABLE TO INDICATE WHICH CHARACTERS IN THE SHORT RANGE TABLES
+1315   ; SHOULD BE DISPLAYED. THE SECOND WORD OF THE S.R. TABLE IS AN INDEX
+1316   ; INTO THIS TABLE, OF THE CHARCTER TO DISPLAY AT THAT ALTITUDE.
+1317
+1318   TERTBL: .BYTE '-,'*,'M,'W,'G
+1319           .EVEN
+1320
+1321
+1322
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 30
+
+1323
+1324   ;  *****************************************
+1325   ;  *                                       *
+1326   ;  *           MESSAGES                    *
+1327   ;  *                                       *
+1328   ;  *****************************************
+1329
+1330
+1331
+1332
+1333           .NLIST BEX
+1334           .ENABL LC
+1335
+1336   COLMS:  .BYTE 7,7,7
+1337           .ASCII/WELL, YOU CERTAINLY BLEW THAT ONE!!!/<15><12>
+1338           .ASCII/FATAL COLLISION, THERE WERE NO SURVIVORS./<0>
+1339
+1340
+1341   TOPMS:  .BYTE 7,7,7
+1342           .ASCIZ/IT'S TOO LATE TO RETURN TO EARTH./
+1343
+1344   SIDEMS: .BYTE 7,7,7
+1345           .ASCIZ/YOU CLOD!! YOU'VE RUN INTO THE EDGE OF THE MOON!!/
+1346
+1347   LANDMS: .ASCIZ/THAT'S ONE SMALL STEP FOR MAN, ONE GIANT LEAP FOR MANKIND./
+1348
+1349   NOSRMS: .BYTE 7,7,7
+1350           .ASCIZ/SORRY, IT'S TOO ROCKY TO LAND HERE. COLLISION!!!/
+1351
+1352   ROCKMS: .BYTE 7,7,7
+1353           .ASCIZ/YOU'VE CRASHED INTO A ROCK!!!/
+1354
+1355   MTNMS:  .ASCIZ/CONGRATULATIONS, SIR EDMOND, YOU'VE REACHED THE TOP!/
+1356
+1357
+1358
+1359
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 31
+
+1360
+1361   MACMS:  .ASCII/WO BIG MACS AND A CHEESEBURGER TO GO, PLEASE.../<15><12><0>
+1362
+1363
+1364   MACMS2: .ASCIZ/OVER 34 TRILLION SOLD.../
+1365
+1366   MACMS3: .BYTE 7,7,7
+1367           .ASCII/YOU JUST CRASHED INTO THE ONLY MACDONALDS ON THE MOON./<15><12>
+1368           .ASCIZ/YOU DISSOLVE INTO A HUGE POOL OF GREASE./
+1369
+1370   WBSMS:  .ASCII/WELCOME TO THE LUNAR OFFICE OF WBS./<15><12>
+1371           .ASCIZ/YOUR AUDITS WILL BE RUN AUTOMATICALLY./
+1372
+1373   WBSMS2: .BYTE 7,7,7 
+1374           .ASCIZ/MSR002-01: YOU'VE JUST CRASHED INTO WBS!!!/
+1375
+1376   GASMS:  .ASCII/MEYER'S MOON MOBIL. LAST GAS UNTLI SATURN. FILL 'ER 'UP?/<15><12><0>
+1377   GASMS2: .ASCIZ/HAPPY MOTORING!/
+1378
+1379   GASMS3: .BYTE 7,7,7
+1380           .ASCII/YOU'VE CRASHED INTO MEYER'S MOON MOBIL./<15><12>
+1381           .ASCIZ/YOU GO UP IN A HUGE FIREBALL. YOU DESERVE IT!/
+1382
+1383
+
+DR0:[20,1]LANDER.MAC;24                                                 PAGE 32
+
+1384
+1385   WBMS:   .BYTE 33,133,61,73,65,62,146
+1386           .REPT 24.
+1387           .BYTE 174,33,133,104,33,133,120
+1388           .ENDR
+1389           .BYTE 0
+1390           .EVEN
+1391
+1392   XVELMS: .BYTE 33,133,66,73,65,65,146
+1393           .ASCIZ/X VELOCITY:/
+1394   YVELMS: .BYTE 33,133,67,73,65,65,146
+1395           .ASCIZ/Y VELOCITY:/
+1396   XPOSMS: .BYTE 33,133,61,61,73,65,65,146
+1397           .ASCIZ/X POSITION:/
+1398   YPOSMS: .BYTE 33,133,61,62,73,65,65,146
+1399           .ASCIZ/Y POSITION:/
+1400   THRMS:  .BYTE 33,133,71,73,65,65,146
+1401           .ASCIZ/THRUST:/
+1402   FUELMS: .BYTE 33,133,61,65,73,65,65,146
+1403           .ASCIZ/FUEL:/
+1404   ALTMS:  .BYTE 33,133,61,63,73,65,65,146
+1405           .ASCIZ/ALTITUDE:/
+1406   SPC:    .ASCIZ/      /
+1407
+1408           .EVEN
+1409
+1410   CPMS:   .BYTE 33,133
+1411   CPMS1:  .BLKB 6
+1412           0
+1413
+1414   INITMS: .BYTE 33,74,33,133,61,73,61,110,33,133,60,112,33,133,77,67,154
+1415           .ASCII/                            WELCOME!!!/<15><12><15><12>
+1416           .ASCII/You are on board a lunar entry module (LEM), racing toward/<15><12>
+1417           .ASCII/the surface of the moon.  NASA has chosen to control the LEM/<15><12>
+1418           .ASCII/with an inferior brand of minicomputer, which has now failed./<15><12>
+1419           .ASCII/You are therefore chrged with the task of landing your craft/<15><12>
+1420           .ASCII/manually.  You have the following controls:/<15><12><15><12>
+1421           .ASCII/UP ARROW   - increases the thrust output of your rocket/<15><12>
+1422           .ASCII/DOWN ARROW - decreases the thrust output of your rocket/<15><12>
+1423           .ASCII/LEFT ARROW - rotates the direction of rocket firing counterclockwise./conuter
+1424           .ASCII/RIGHT ARROW- rotates the direction of rotates firing clockwise/<15><12>
+1425           .ASCII/1 - 9      - sets the delay for display of vital stats (try 6 if remote)/<15><12>
+1426           .ASCII/SPACE      - starts a new game (only after old game finishes/<15><12>
+1427           .ASCII/CONTROL-C  - exits the program, returns to monior/<15><12><15><12>
+1428           .ASCII/You're on your own...  GOOD LUCK!/<15><12><15><12>
+1429           .ASCII/Press SPACE to begin./<15><12><0>
+1430
+1431
+1432   VT52:   .BYTE 33,133,77,62,154,0
+
+(setq comment-column 43)
+(defun comment () (interactive) (move-to-column comment-column t) (insert "; "))
+(local-set-key ";" 'comment)
+(defun new-page (n start-line end-line)
+  (insert (format "DR0:[20,1]LANDER.MAC;24                                                 PAGE %s\n\n" n))
+  (loop for i from start-line to end-line do
+    (insert (format "%d           \n" i)))
+  (insert ""))
