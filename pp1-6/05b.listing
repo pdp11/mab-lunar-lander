@@ -1,0 +1,55 @@
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 7
+
+
+
+
+
+  238
+  239   POSCHK: CMP XPOS,#50000.
+  240           BLO POSCH1                      ; OFF THE SIDES OF THE WORLD
+  241           CURPOS #1,#3
+  242           SNDSTR #SIDEMS
+  243           JMP COLLIS
+  244
+  245   POSCH1: JSR PC,ALT                      ; GET ALTITUDE
+  246           MOV R0,TEMP
+  247           TST R1
+  248           BGT POSCH2
+  249           SUB R1,YPOS
+  250           CURPOS #1,#3
+  251           CMP XVEL,#5                     ; SOFT LANDING IS XVEL, YVEL < 5
+  252           BGT 1$
+  253           CMP XVEL,#-5
+  254           BLT 1$
+  255           CMP YVEL,#5
+  256           BGT 1$
+  257           CMP YVEL,#-5
+  258           BLT 1$
+  259           TST VIEW
+  260           BNE 2$
+  261           SNDSTR #NOSRMS                  ; CAN'T LAND WHERE NO SHORT RANGE VIEW EXISTS
+  262           JMP COLLIS
+  263   2$:     CMP TEMP,#1                     ; LANDIN ON A ROCK
+  264           BNE 3$
+  265           SNDSTR #ROCKMS
+  266           JMP COLLIS
+  267   3$:     TST SUBR                        ; IS THERE A SUBROUTINE TO EXECUTE
+  268           BEQ 4$
+  269           JSR PC,@SUBR
+  270           JMP POSOK                       ; NOTE WE DON'T GO TO COLLIS BECAUSE SUBR MIGHT DO STUFF.
+  271   4$:     SNDSTR #LANDMS                  ; SOFT LANDING!!
+  272           JMP COLLIS
+  273
+  274   1$:     SNDSTR #COLMS                   ; CRASH!!!
+  275           JMP COLLIS
+  276
+  277   POSCH2: CMP YPOS,#24000.                ; OFF TOP?
+  278           BLT POSOK
+  279           CURPOS #1,#3
+  280           SNDSTR #TOPMS
+  281
+  282   COLLIS: INC COLFLG                      ; OFF ANY EDGE IS TREATED AS A COLLISION
+  283           CLR MESFLG
+  284           CLR THRUST
+  285
+  286   POSOK:  JSR PC,DISPLY
