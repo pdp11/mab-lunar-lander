@@ -1,1 +1,1463 @@
-(placeholder)
+
+
+  *************************************************************
+  *                                                           *
+  *  LUNAR LANDER, BY MEYER A. BILLMERS                       *
+  *                                                           *
+  *  THIS PROGRAM IMPLEMENTS, ON THE VT100, A VERSION OF      *
+  *  DIGITAL EQUIPMENT CORPS CLASSIC GRAPHIC GAME, LUNAR      *
+  *  LANDER.  THE PLAYER IS THE PILOT OF A LUNAR ENTRY MODULE *
+  *  WITH CONTROLS THAT CONTROL THE FIRING OF ROCKETS         *
+  *  THE THRUST OF THE ROCKETS.  THE OBJECT IS TO MAKE A      *
+  *  SOFT LANDING ON THE LUNAR SURFACE.                       *
+  *                                                           *
+  *  GOOD LUCK!                                               *
+  *                                                           *
+  *************************************************************
+
+
+
+        .TITLE LUNAR LANDER, BY MEYER A BILLMERS
+
+        .MCALL QIO$C,QIOW$S,ALUN$C,EXIT$S,MRKT$C,ASSTX$S
+
+; SYMBOL DEFINITIONS
+
+        TERRCH = 55
+
+
+; MACRO DEFINITIONS
+
+
+; REGISTER, STACK MACROS
+
+        .MACRO PUSH A
+
+        MOV A,-(SP)
+
+        .END
+
+        .MACRO POP A
+
+        MOV (SP)+,A
+
+        .ENDM
+
+        .MACRO SAVREG
+
+        PUSH R0
+        PUSH R1
+        PUSH R2
+        PUSH R3
+        PUSH R4
+        PUSH R5
+
+        .ENDM
+
+        .MACRO RESREG
+
+        POP R5
+        POP R4
+        POP R3
+        POP R2
+        POP R1
+        POP R0
+
+        .ENDM
+
+; VT100 SCREEN MACROS
+
+; SEND A CHARACTER
+
+
+
+        .MACRO SNDCHR A
+
+        MOVB A,WRKST1
+        PUSH R0
+        MOV #WKRST1,R0
+        JSR PC,TYPE
+        POP R0
+
+        .ENDM
+
+; INITIATE AN ESCAPE SEQUENCE (ESC [)
+
+        .MACR ESCSEQ
+
+        SNDCHR #33
+        SNDCHR #133
+
+        .ENDM
+
+; POSITION THE CURSOR AT A,B
+
+        .MACRO CURPOS A,B
+
+        MOV A,R0
+        MOV B,R1
+        JSR PC,POSCUR
+
+        .ENDM
+
+; CLEAR THE SCREEN
+
+        .MACRO CLRSCR
+
+        CURPOS #1,#1
+        ESCSEQ
+        SNDCHR #60
+        SNDCHR #112
+
+        .ENDM
+
+
+
+ ; TYPE A STRING
+
+         .MACRO SNDSTR A
+
+         MOV A,R0
+         JSR PC,TYPE
+
+         .ENDM
+
+ ; TYPE A NUMBER (SIGNED)
+
+         .MACRO SNDNUM A
+
+         MOV A,R1
+         MOV #WKRSTR,R0
+         JSR PC,NUMSTR
+         JSR PC,TYPE
+
+         .ENDM
+
+ ; TYPE A NUMBER (UNSIGNED)
+
+         .MACRO SNDABS A
+
+         INC ABSFLG
+         SNDNUM A
+         CLR ABSFLG
+
+         .ENDM
+
+ ; LIGHT LED A (A = 0 => ALL LEDS OFF)
+
+         .MACRO LEDS A
+
+         ESCSEQ
+         SNDCHR A
+         SNDCHR #161
+
+         .ENDM
+
+ ; MISCELLANEOUS MACROS
+
+ ; DEPOSIT N ROCKS AT ALTITUDE A
+
+         .MACRO ROCK N,A
+
+         .REPT N
+         A,1,0
+         .ENDR
+
+        .ENDM
+
+; DEPOSIT N FLAT SPACES AT ALTITUDE A
+
+        .MACRO FLAT N,A
+
+        .REPT N
+        A,0,0
+        .ENDR
+
+        .ENDM
+
+
+
+
+START:  ALUN$C 1,TI
+        QIO$C IO.ATA,1,,,,,<TTYINT>
+        MRKT$C 2,1,1,CLKINT
+        SNDSTR #INITMS
+        INC COLFLG
+        JMP MAINLP
+
+NEWGAM: CLR TICKS
+        MOV FUELMX,FUEL
+        MOV XVELI,XVEL                  ; KEEPING TWEAKABLE CONSTANTS IN VARIABLES, SO WE
+        MOV YVELI,YVEL                  ; CAN CHANGE THEM USING THE MACHINES SWITCHES AT RUN TIME
+        MOV #1,XPREV
+        MOV #1,YPREV
+        MOV #1,XRPREV
+        MOV #1,YRPREV
+        MOV THRSTI,THRUST
+        MOV #2,ENGIN
+
+        ; ENGINES ARE NUMBERED AS FOLLOWS:
+
+        ;          5
+        ;       6     4
+        ;    7     L    3
+        ;       8     2
+        ;          1
+
+        ; NOTE THAT THE NUMBER OF AN ENGINE IS ALSO THE INDEX INTO THE SIN AND COS TABLES
+        ; CORRESPONDING TO THE X AND Y COMPONENTS OF THRUST DUE TO THAT ENGINE.
+
+        MOV XPOSI,XPOS
+        MOV YPOSI,YPOS
+
+MAINLP: TST COLFLG                      ; COLLISION?
+        BEQ NOCOL
+1$:     TST RESFLG
+        BEQ 1$                          ; TIME TO RESUME NEW GAME?
+        CLR RESFLG
+        CLR COLFLG
+        INC HDRFLG
+        JMP NEWGAM
+
+
+
+NOCOL:  SUB THURST,FUEL                 ; UNITS OF FUEL ARE THRUST PER TICK
+        BGT 1$                          ; OUT OF FUEL?
+        CLR THRUST
+        CLR FUEL
+1$:     ADD GRAV,YVEL                   ; NOTE THAT GRAVITY MUST BE SIGNED, MAY BE POSITIVE!
+        MOV THRUST,R1
+        MOV ENGIN,R0
+        DEC R0
+        ASL R0
+        MUL SINTAB(R0),R1               ; COMPUTE THE X COMPONENT OF ROCKET THRUST
+        ASH #-9.,R1                     ; AND TABLE ENTRIESS FOR SIN,COS ARE IN OCTAL 1000THS
+        ADD R1,XVEL
+        MOV THRUST,R1
+        MUL COSTAB(R0),R1
+        ASH #-9.,R1
+        ADD R1,YVEL                     ; SAME FOR Y COMPONENT
+        ADD XVEL,XPOS
+        ADD YVEL,YPOS
+
+
+
+
+POSCHK: CMP XPOS,#50000.
+        BLO POSCH1                      ; OFF THE SIDES OF THE WORLD
+        CURPOS #1,#3
+        SNDSTR #SIDEMS
+        JMP COLLIS
+
+POSCH1: JSR PC,ALT                      ; GET ALTITUDE
+        MOV R0,TEMP
+        TST R1
+        BGT POSCH2
+        SUB R1,YPOS
+        CURPOS #1,#3
+        CMP XVEL,#5                     ; SOFT LANDING IS XVEL, YVEL < 5
+        BGT 1$
+        CMP XVEL,#-5
+        BLT 1$
+        CMP YVEL,#5
+        BGT 1$
+        CMP YVEL,#-5
+        BLT 1$
+        TST VIEW
+        BNE 2$
+        SNDSTR #NOSRMS                  ; CAN'T LAND WHERE NO SHORT RANGE VIEW EXISTS
+        JMP COLLIS
+2$:     CMP TEMP,#1                     ; LANDIN ON A ROCK
+        BNE 3$
+        SNDSTR #ROCKMS
+        JMP COLLIS
+3$:     TST SUBR                        ; IS THERE A SUBROUTINE TO EXECUTE
+        BEQ 4$
+        JSR PC,@SUBR
+        JMP POSOK                       ; NOTE WE DON'T GO TO COLLIS BECAUSE SUBR MIGHT DO STUFF.
+4$:     SNDSTR #LANDMS                  ; SOFT LANDING!!
+        JMP COLLIS
+
+1$:     SNDSTR #COLMS                   ; CRASH!!!
+        JMP COLLIS
+
+POSCH2: CMP YPOS,#24000.                ; OFF TOP?
+        BLT POSOK
+        CURPOS #1,#3
+        SNDSTR #TOPMS
+
+COLLIS: INC COLFLG                      ; OFF ANY EDGE IS TREATED AS A COLLISION
+        CLR MESFLG
+        CLR THRUST
+
+POSOK:  JSR PC,DISPLY
+1$:     CMP CLKCNT,#30
+        BLT 1$                         ; WAIT FOR 1/2 SEC. TO ELAPSE
+        INC TICKS
+        INC TICROT                     ; ROTATING TICK COUNT
+        CLR CLKCNT
+        JMP MAINLP
+
+
+
+; DISPLAY THE WORLD
+
+DISPLY: CLR R2                          ; COMPUTE VIEW TO BE DISPLAYED IN R2
+        JSR PC,ALT
+        MOV R1,ALTUDE
+        CMP R1,#1000.
+        BGE 1$
+        MOV XPOS,R1
+        CLR R0
+        DIV #1000.,R0
+        ASL R0
+        MOV ALTSR(R0),R2
+1$:     CMP R2,VIEW                     ; IF VIEW CHANGED, WE RE-DISPLAY
+        BEQ DISP0
+        INC HDRFLG
+        MOV R2,VIEW
+DISP0:  TST HDRFLG                      ; DO WE NEED TO RE-DISPLAY HEADERS
+        BNE DISPL0
+        JMP DISP1
+DISPL0: MOV #1,XPREV
+        MOV #1,YPREV
+        MOV #1,XRPREV
+        MOV #1,YRPREV
+        CLRSCR
+        CLR HDRFLG
+        SNDSTR #VBMS
+        SNDSTR #XVELMS
+        SNDSTR $YVELMSS
+        SNDSTR #THRMS
+        SNDSTR #XPOSMS
+        SNDSTR #YPOSMS
+        SNDSTR #ALTMS
+        SNDSTR #FUELMS
+
+        MOV #49.,R5
+        TST VIEW
+        BNE DISPL2                      ; WHICH VIEW TO DISPLAY, LONG OR SHORT RANGE
+
+
+
+
+DISPL1: MOV R5,R1
+        ASL R1
+        MOV ALTLR(R1),R3            ; LOOP TO DISPLAY THE SURFACE (LONG RANGE VIEW.)
+        CLR R2
+        DIV #1000.,R2               ; CONVERT TO SCREEN UNITS (1 S.U. IS 1000 LUNAR UNITS).
+        SUB #24.,R2
+        NEG R2
+        MOV R2,R4
+        CURPOS R5,R4
+        SNDCHR #TERRCH              ; SEND THE TERRAIN CHARACTER
+        DEC R5
+        BEQ DSPL1A
+        JMP DISPL1
+
+DSPL1A: JMP DISP1
+
+DISPL2: MOV R5,R1                   ; LOOP TO DISPLAY THE SURFACE (SHORT RANGE VIEW).
+        MUL #6,,R1
+        ADD VIEW,R1
+        MOV (R1)+,R3
+        MOV (R1),TEMP               ; SAVE THE TERRAIN CHARACTER IN TEMP
+        TEMP,R1
+        MOVB TERTBL(R1),TEMP
+        CLR R2
+        DIV #40.,R2
+        SUB #24.,R2
+        NEG R2
+        MOV R2,R4
+        CURPOS R5,R4
+        SNDCHR TEMP
+        DEC R5
+        BEQ DISP1
+        JMP DISPL2
+DISP1:  CURPOS XPREV,YPREV
+        SNDCHR #40                  ; BLANK OUT OLD SHIP POSITION
+        CURPOS XRPREV,YRPREV
+        SNDCHR #40                  ; AND OLD ROCKET INDICATOR.
+
+
+
+
+DISP1B: TST VIEW
+        BEQ 6$
+        MOV #40.,TEMP1
+        MOV #20.,TEMP2
+        BR 7$
+6$:     MOV #1000.,TEMP1
+        MOV #1000.,TEMP2
+7$:     MOV XPOS,R0                  ; GET POSITIONS MODULO 1000.
+        TST VIEW
+        BEQ 8$
+        JSR PC,MODULO
+8$:     MOV R0,R3
+        CLR R2
+        DIV TEMP2,R2                 ; CONVERT SHIP POSITION TO SCREEN COORDINATES.
+        MOV R2,R4
+        MOV YPOS,R0
+        DEC R0
+        BGE 10$
+        CLR R0
+10$:    TST VIEW
+        BEQ 9$
+        JSR PC,MODULO
+9$:     CLR R2
+        MOV R0,R3
+        BEQ 11$
+        ADD TEMP1,R3
+        SXT R2
+        DIV TEMP1,R2
+11$:    SUB #24.,R2
+        NEG R2
+        MOV R2,R5
+        TST R4
+        BGT 1$
+        MOV #1,R4
+1$:     CMP R4,#49.
+        BLE 2$
+        MOV #49.,R4
+2$:     TST R5
+        BGT 3$
+        MOV #1,R5
+3$:     CMP R5,#24.
+        BLE 4$
+        MOV #24.,R5
+4$:     JSR PC,ALT
+        CURPOS R4,R5                 ; SEND OVER THE SHIP
+        SNDCHR #114                  ; AS AN "L"
+5$:     MOV R4,XPREV
+        MOV R5,YPREV
+
+        TST FUEL
+        BEQ DISP2                    ; IF NO FUEL LEFT, DON'T DISPLAY ROCKET INDICATOR.
+
+
+
+DISP1A: MOV ENGIN,R0
+        DEC R0
+        ASL R0
+        MOV SINTAB(R0),R3
+        SXT R2
+        DIV #552,R2                  ; TAKING THE INTEGER FUNCTION OF SIN, COS
+        SUB R2,R4                    ; TO COMPUTE WHICH INDICATOR TO DISPLAY
+        MOV COSTAB(R0),R3
+        SXT R2
+        DIV #552,R2
+        ADD R2,R5
+        JSR PC,ALT
+        CMP R1,TEMP1
+        BLT DISP2
+        CURPOS R4,R5
+        SNDCHR #56                   ; SEND A "." AS ROCKET FIRING INDICATOR
+        MOV R4,XRPREV
+        MOV R5,YRPREV
+
+DISP2:  CMP TICROT,DELCT             ; TIME TO SEND OVER VITAL STATS?
+        BGE DISP2A
+        JMP DSPEND
+DISP2A: CLR TICROT                   ; SENDING OVER VITAL STATISTICS ABOUT THE SHIP
+        CURPOS #68.,#6.
+        MOV XVEL,TEMP
+        ASL TEMP
+        SNDNUM TEMP
+        SNDSTR #SPC
+        CURPOS #68.,#7.
+        MOV YVEL,TEMP
+        ASL TEMP
+        SNDNUM TEMP
+        SNDSTR #SPC
+        CURPOS #68.,#9.
+        MOV THRUST,TEMP
+        ASL TEMP
+        SNDNUM TEMP
+        SNDSTR #SPC
+        CURPOS #68.,#11.
+        SNDABS XPOS
+        SNDSTR #SPC
+        CURPOS #68.,#12.
+        SNDNUM YPOS
+        SNDSTR #SPC
+        CURPOS #68.,#13.
+        SNDNUM ALTUDE
+        SNDSTR #SPC
+        CURPOS #68.,#15.
+        SNDNUM FUEL
+        SNDSTR #SPC
+        CURPOS #99.,#99.
+
+DSPEND: RTS PC
+
+
+
+
+
+; COMPUTE THE ALTITUDE OF THE SHIP. RETURNS ALTITUDE IN R1, TERRAIN CHARACTER IN R0
+; RETURNS SUBR TO CALL IF LANDED IN SUBR.
+
+ALT:    PUSH R2
+        PUSH R3
+        PUSH R4
+        PUSH R5
+        MOV XPOS,R1
+        CLR R0
+        DIV #1000.,R0
+        MOV R0,R3
+        MOV YPOS,R1
+        ASL R0
+        SUB ALTLR(R0),R1
+        CMP R1,#1000.
+        BGE ALTDN
+        MOV ALTSR(R0),R2
+        BEQ ALTDN
+        MUL #1000.,R3
+        MOV XPOS,R5
+        SUB R3,R5
+        CLR R4
+        DIV #10.R4
+        MOV R4,R3
+        MUL #6,R3
+        ADD R3,R2
+        SUB (R2)+,R1
+        MOV (R2)+,R0
+        MOV (R2),SUBR
+
+ALTDN:  POP R5
+        POP R4
+        POP R3
+        POP R2
+        RTS PC
+
+; COMPUTE THE VALUE OF R0 MOD 1000., RETURNS RESULT IN R0
+
+MODULO: PUSH R2
+        PUSH R3
+        MOV R0,R3
+        CLR R2
+        DIV #1000.,R2
+        MOV R2,R3
+        MUL #1000.,R3
+        SUB R3,R0
+        POP R3
+        POP R2
+        RTS PC
+
+
+
+; TYPE AN ASCIZ STRING POINTED TO BY R0
+
+TYPE:   CLR BUFCTR
+        MOV R0,BUFPTR
+
+1$:     TSTB (R0)+
+        BEQ 2$
+        INC BUFCTR
+        BR 1$
+
+2$:     QIOQ$S :IO.WVB,#1,#1,,,,<BUFPTRF,BUFCTR>
+        RTS PC
+
+
+; CONVERT A NUMBER TO AN ASCIZ STRING.  NUMBER IN R1,POINTER TO STRING
+; TO RETURN IN R0. PRINTS UNSIGNED NUMBERS IF ABSFLG IS SET.
+
+NUMSTR: PUSH R0
+        PUSH R2
+        PUSH R3
+        CLR -(SP)
+        CLR NEGFL
+        TST ABSFLG
+        BNE 1$
+        TST R1
+        BPL 1$
+        INC NEGFL
+        NEG R1
+1$:     MOV R1,R3
+        CLR R2
+NS1:    DIV #10.,R2
+        ADD $60,R3
+        PUSH R3
+        TST R2
+        BEQ NS2
+        MOV R2,R3
+        CLR R2
+        BR NS1
+
+NS2:    TST NEGFL
+        BEQ NS3
+        MOVB #55,(R0)+
+NS3:    POP R2
+        MOVB R2,(R0)+
+        TSTB R2
+        BNE NS3
+        POP R3
+        POP R2
+        POP R0
+        RTS PC
+
+
+
+
+
+MAC1:   SNDSTR #MACMS
+        CLR CLKCNT
+1$:     CMP CLKCNT,#360.
+        BLT 1$
+        MOV #10.,YVEL
+        MOV #12.,THRUST
+        MOV #1,ENGIN
+        CLR XVEL
+        ADD #10.,YPOS
+        SNDSTR #MACMS2
+        RTS PC
+
+MAC2:   SNDSTR #MACMS3
+        INC COLFLG
+        CLR RESFLG
+        CLR FUEL
+        CLR THRUST
+        RTS PC
+
+WBS1:   SNDSTR #WBSMS
+        INC COLFLG
+        CLR RESFLG
+        CLR FUEL
+        CLR THRUST
+        RTS PC
+
+WBS2:   SNDSTR #WBSMS2
+        INC COLFLG
+        CLR RESFLG
+        CLR FUEL
+        CLR THRUST
+        RTS PC
+
+GAS1:   SNTSTR #GASMS
+        CLR CLKCNT
+1$:     CMP CLKCNT,#240.
+        BLT 1$
+        MOV #10.,YVEL
+        MOV #12.,THRUST
+        MOV #1,ENGIN
+        CLR XVEL
+        MOV #2000.,FUEL
+        ADD #10.,YPOS
+        SNDSTR #GASMS2
+        RTS PC
+
+GAS2:   SNDSTR #GASMS3
+        INC COLFLG
+        CLR RESFLG
+        CLR FUEL
+        CLR THRUST
+        RTS PC
+
+
+
+
+; POSITION IN R0, R1 (X, Y). POSITION THE CURSOR THERE.
+
+POSCUR: PUSH R2
+        PUSH R5
+        MOV #CPMS1,R2
+        MOV R0,R5
+        MOV #WRKSTR,R0
+        JSR PC,NUMSTR
+        TSTB WRKSTR
+        BEQ PC1
+        MOVB WRKSTR,(R2)+
+        TSTB WRKSTR+1
+        BEQ PC1
+        MOVB WRKSTR+1,(R2)+
+
+PC1:    MOVB #73,(R2)+
+        MOV R5,R1
+        MOV #WRKSTR,R0
+        JSR PC,NUMSTR
+        TSTB WRKSTR
+        BEQ BC2
+        MOVB WRKSTR,(R2)+
+        TSTB WRKSTR+1
+        BEQ PC2
+        MOVB WRKSTR+1,(R2)+
+
+PC2:    MOVB #146,(R2)+
+        CLRB (R2)+
+        SNDSTR #CPMS
+        POP R5
+        POP R2
+        RTS PC
+
+MTNTOP: SNDSTR #MTNMS
+        CLR THRUST
+        INC COLFLG
+        CLR RESFLG
+        RTS PC
+
+
+
+;  ***************************************
+;  *                                     *
+;  *       AST INTERRUPT ROUTINES        *
+;  *                                     *
+;  ***************************************
+
+
+CLKINT: INC CLKCNT
+        TST (SP)+
+        MRKT$C 2,1,1,CLKINT
+        ASTX$S
+
+
+TTYINT: PUSH R0
+        BIC #177400,R0
+        CMP R0,#3
+        BNE TTYI1
+        CLRSCR                      ; HERE FOR CNTRL-C TO RETURN TO MCR 
+        SNDSTR #VT52
+        EXIT$S
+
+TTYI1:  CMP R0,#101
+        BNE TTYI2
+        INC THRUST                  ; UP-ARROW INCREASES THRUST
+        CMP THRUST,#15.
+        BLE 1$
+        MOV #15.,THRUST
+1$:     JMP TTYION
+
+TTYI2:  CMP R0,#102                 ; DOWN-ARROW INCREASES THRUST
+        BNE TTYI3
+        DEC THRUST
+        BGT 1$
+        MOV #1,THRUST
+1$:     JMP TTYIDN
+
+
+
+
+TTYI3:  CMP R0,#103                 ; RIGHT-ARROW ROTATES ENGINE COUNTER-CLOCKWISE
+        BNE TTYI4
+        INC ENGIN
+        CMP ENGIN,#8.
+        BLE 1$
+        MOV #1,ENGIN
+1$:     JMP TTYIDN
+
+TTYI4:  CMP R0,#104                 ; LEFT-ARROW ROTATES ENGINE CLOCKWISE
+        BNE TTYI5
+        DEC ENGIN
+        BGT 1$
+        MOV #8.,ENGIN
+1$:     JMP TTIDN
+
+TTYI5:  CMP R0,$40
+        BNE TTYI6
+        INC RESFLG
+        JMP TTYIDN
+
+TTYI6:  CMP R0,#61
+        BLT TTYIDN
+        CMP R0,#71
+        BGT TTYIDN
+        SUB #60,R0
+        MOV R0,DELCT
+
+TTYIDN: POP R0
+        TST (SP)+
+        ASTX$S
+
+
+
+
+; **********************************
+; *                                *
+; *      VARIABLES, ARRAYS, DATA   *
+; *                                *
+; **********************************
+
+
+WRKSTR: .BLKB 30
+WRKST1: 0
+BUFPTR: 0
+BUFCTR: 0
+FUELMX: 2000.                       ; INITIAL FUEL ALLOCATION
+FUEL:   0                           ; CURRENT FUEL REMAINING
+XPOSI:  1000.                       ; INITIAL X POSITION
+XPOS:   0                           ; CURRENT X POSITION
+YPOSI:  24000.                      ; INITIAL Y POSITION
+YPOS:   0                           ; CURRENT Y POSITION
+XVELI:  600.                        ; INITIAL X VELOCITY
+XVEL:   0                           ; CURRENT X VELOCITY
+YVELI:  -350.                       ; INITIAL Y VELOCITY
+YVEL:   0                           ; CURRENT Y VELOCITY
+ENGIN:  0                           ; WHICH ENGINE IS FIRING?
+GRAV:   -2                          ; ACCELERATION DUE TO GRAVITY
+THRSTI: 12.                         ; INITIAL THRUST
+THRUST: 0                           ; CURRENT THRUST
+COLFLG: 0                           ; COLLITION HAS OCCURRED.
+TICKS:  0
+RESFLG: 0                           ; SET TO PLAY A NEW GAME
+HDRFLG: 0                           ; NEED TO DISPLAY SCREEN HEADERS
+XPREV:  0                           ; SAVES OLD X POS. OF SHIP
+YPREV:  0                           ; SAVES OLD Y POS. OF SHIP
+XRPREV: 0                           ; SAVES OLD X POS. OF ROCKET INDICATOR
+YRPREV: 0                           ; SAVES OLD Y POS. OF ROCKET INDICATOR
+CLKCNT: 0
+NEGFL:  0
+TEMP:   0
+TEMP1:  0
+TEMP2:  0
+ABSFLG: 0
+VIEW:   0                           ; ADDRESS OF SHORT RANGE VIEW TABLE, OR 0 IF LONG RANGE VIEW
+SUBR:   0                           ; CONTAINS SUBROUTINE TO EXECUTE
+ALTUDE: 0                           ; SAVES THE ALTITUDE
+DELCT:  1                           ; DELAY COUNT FOR DISPLAYING VITALS STATS (1 IF NON-REMOTE TERMINAL)
+TICROT: 0
+
+
+
+
+SINTAB: 0                           ; TABLE OF SINES, IN OCTAL, TIMES OCTAL 1000
+        -552
+        -1000
+        -552
+        0
+        552
+        1000
+        552
+
+COSTAB: 1000                        ; TABLE OF COSINES, IN OCTAL, TIMES OCTAL 1000
+        552
+        0
+        -552
+        -1000
+        -552
+        0
+        552
+        
+
+
+ALTLR:  4000.,3000.,2000.,2000.,2000.,3000.,4000.,3000.,3000.,3000.,2000.,1000.,1000.,0,0,0,0,0,0,0
+        0,0,0,2000.,3000.,4000.,3000.,2000.,0,0,0,0,0,0,0,0,0,0,0,0
+        0,0,0,1000.,2000.,3000.,4000.,5000.,5000.,6000.
+
+ALTSR:  0,0,ALT1,ALT2,ALT3,0,0,ALT4,ALT5,ALT6,0,0,0,0,ALT7,ALT8,ALT9,ALT10,ALT11,ALT12
+        ALT13,ALT14,0,0,0,ALT15,0,0,0,ALT16,ALT17,ALT18,ALT19,ALT20,ALT21,ALT22
+        ALT23,ALT24,ALT25,ALT26,ALT27,ALT28,0,0,0,0,0,ALT29,ALT30,0
+
+; SHORT RANGE ALTITUDE RABLES.  EACH TABLE IS POITED TO BY AN ENTRY IN ALTSR,
+; AND CONSITS OF 3 WORDS FOR EACH X GRADATION: ALTITUDE, CHRACTER TO DISPLAY
+; (THIS SECOND WORD IS AN INDEX INTO TERTBL) AND POINTER TO SUBROUTINE TO CALL
+; IF A LANDING OCCURS THERE. AN X GRADATION HERE IS 20, AND A Y GRADATION
+; IS 40.
+
+
+        .NLIST BEX
+
+        .RADIX 10
+
+ALT1:   ROCK 2,280
+        ROCK 1,240
+        ROCK 1,200
+        ROCK 2,160
+        ROCK 2,120
+        ROCK 4,80
+        ROCK 2,40
+        ROCK 2,80
+        ROCK 2,40
+        ROCK 2,80
+        ROCK 2,120
+        ROCK 2,80
+        ROCK 2,40
+        FLAG 10,40
+        FLAT 8,0
+        ROCK 6,40
+
+ALT2:   ROCK 10,40
+        FLAT 8,40
+        FLAT 7,0
+        ROCK 1,0
+        FLAG 3,0
+        ROCK 2,0
+        FLAT 4,0
+        0,0,GAS1
+        0,0,GAS1
+        0,0,GAS1
+        0,0,GAS1
+        0,0,GAS1
+        0,4,GAS2
+        0,0,GAS1
+        0,0,GAS1
+        0,0,GAS1
+        0,0,GAS1
+        0,0,GAS1
+        ROCK 4,0
+
+
+
+
+ALT3:   ROCK 3,0
+        FLAT 4,9
+        ROCK 3,40
+        FLAT 12,40
+        ROCK 1,80
+        FLAT 5,80
+        ROCK 1,80
+        FLAG 5,80
+        ROCK 1,120
+        ROCK 15,160
+
+
+ALT4:   ROCK 8,240
+        ROCK 3,200
+        ROCK 1,160
+        ROCK 2,120
+        FLAT 5,80
+        ROCK 2,80
+        FLAG 5,40
+        FLAT 3,0
+        ROCK 1,40
+        FLAG 8,40
+        ROCK 6,80
+        FLAT 6,80
+
+ALT5:   FLAT 5,80
+        ROCK 2,80
+        FLAT 3,80
+        ROCK 6,40
+        FLAT 2,40
+        ROCK 2,40
+        FLAT 4,0
+        ROCK 1,0
+        FLAT 7,0
+        ROCK 2,0
+        FLAT 5,40
+        ROCK 2,40
+        FLAT 9,40
+
+ALT6:   ROCK 4,40
+        FLAT 5,80
+        ROCK 1,40
+        FLAT 4,40
+        ROCK 1,40
+        FLAT 6,40
+        ROCK 1,80
+        FLAT 3,80
+        ROCK 6,80
+        FLAT 5,40
+        ROCK 3,0
+        FLAT 5,0
+        ROCK 6,0
+
+
+
+
+ALT7:   FLAT 3,0
+        ROCK 1,0
+        FLAT 3,0
+        FLAT 5,40
+        ROCK 3,40
+        ROCK 5,80
+        ROCK 2,40
+        FLAT 3,40
+        ROCK 4,0
+        FLAT 5,0
+        ROCK 2,40
+        ROCK 1,80
+        ROCK 2,120
+        FLAT 3,120
+        ROCK 1,120
+        ROCK 3,80
+        ROCK 2,40
+        FLAT 2,40
+
+ALT8:   FLAT 3,40
+        ROCK 4,80
+        FLAT 3,40
+        ROCK 1,40
+        FLAT 10,40
+        ROCK 1,40
+        ROCK 1,80
+        FLAT 6,80
+        ROCK 3,80
+        FLAT 11,80
+        ROCK 2,80
+        ROCK 2,40
+        FLAT 3,40
+
+ALT9:   FLAT 5,40
+        ROCK 2,40
+        FLAT 8,0
+        ROCK 1,0
+        FLAT 5,0
+        ROCK 1,0
+        ROCK 1,40
+        ROCK 1,80
+        ROCK 2,40
+        FLAT 3,40
+        ROCK 1,80
+        FLAT 10,80
+        ROCK 1,80
+        FLAT 1,80
+
+
+
+
+ALT10:  FLAT 5,80
+        ROCK 1,80
+        ROCK 1,120
+        ROCK 1,160
+        FLAT 5,160
+        ROCK 1,120
+        ROCK 1,80
+        ROCK 1,40
+        40,0,WBS1
+        40,0,WBS1
+        40,0,WBS1
+        40,0,WBS1
+        40,0,WBS1
+        40,0,WBS1
+        40,3,WBS2
+        40,0,WBS1
+        40,0,WBS1
+        40,0,WBS1
+        40,0,WBS1
+        40,0,WBS1
+        ROCK 1,80
+        ROCK 1,120
+        FLAT 7,120
+        ROCK 1,120
+        FLAT 3,120
+        ROCK 1,160
+        FLAT 5,160
+        ROCK 3,160
+
+
+
+
+ALT11:  ROCK 1,200
+        ROCK 1,240
+        ROCK 1,280
+        ROCK 2,320
+        FLAT 4,320
+        ROCK 2,320
+        ROCK 2,360
+        ROCK 1,400
+        ROCK 2,440
+        RCK 1,480
+        ROCK 1,520
+        ROCK 1,600
+        ROCK 2,640
+        FLAT 3,640
+        ROCK 1,680
+        ROCK 2,720
+        FLAT 8,720
+        ROCK 1,680
+        ROCK 1,600
+        ROCK 1,520
+        ROCK 2,480
+        ROCK 1,440
+        ROCK 2,400
+        ROCK 1,360
+        FLAT 4,360
+        ROCK 2,320
+
+
+
+
+ALT12:  ROCK 3,320
+        ROCK 1,360
+        ROCK 1,400
+        ROCK 1,440
+        ROCK 1,400
+        ROCK 1,320
+        ROCK 1,240
+        ROCK 1,200
+        ROCK 2,160
+        ROCK 5,120
+        ROCK 3,80
+        FLAT 10,80
+        FLAT 5,40
+        ROCK 1,40
+        FLAT 3,40
+        ROCK 3,80
+        FLAT 8,80
+
+ALT13:  FLAT 7,80
+        ROCK 3,80
+        ROCK 1,40
+        FLAT 8,40
+        ROCK 1,80
+        ROCK 1,120
+        ROCK 1,160
+        FLAT 5,160
+        ROCK 2,120
+        FLAT 6,120
+        ROCK 3,160
+        FLAT 12,160
+
+ALT14:  FLAT 3,160
+        ROCK 1,80
+        FLAT 8,80
+        ROCK 1,80
+        FLAT 3,80
+        ROCK 1,40
+        FLAT 6,40
+        ROCK 1,40
+        FLAT 14,40
+        ROCK 1,40
+        FLAT 4,40
+        ROCK 1,0
+        FLAT 6,0
+
+
+
+
+ALT15:  ROCK 8,0
+        ROCK 6,40
+        ROCK 1,80
+        ROCK 1,120
+        ROCK 1,160
+        ROCK 1,240
+        ROCK 2,280
+        ROCK 5,320
+        ROCK 1,360
+        ROCK 1,400
+        ROCK 1,440
+        ROCK 1,480
+        ROCK 1,520
+        ROCK 2,560
+        560,0,MTNTOP
+        560,0,MTNTOP
+        560,0,MTNTOP
+        ROCK 1,560
+        ROCK 1,520
+        ROCK 1,440
+        ROCK 3,400
+        ROCK 1,360
+        ROCK 1,320
+        ROCK 1,280
+        ROCK 2,240
+        ROCK 2,200
+
+ALT16:  FLAT 7,0
+        ROCK 1,0
+        FLAT 3,0
+        ROCK 2,40
+        ROCK 1,80
+        ROCK 1,40
+        FLAT 3,40
+        ROCK 3,80
+        ROCK 1,120
+        FLAT 2,80
+        ROCK 1,80
+        ROCK 5,40
+        ROCK 3,0
+        FLAT 6,0
+        ROCK 3,0
+        FLAT 8,0
+
+ALT17:  FLAT 14,0
+        ROCK 1,0
+        FLAT 11,0
+        ROCK 1,0
+        ROCK 1,40
+        FLAT 3,40
+        ROCK 1,40
+        ROCK 1,0
+        FLAT 12,0
+        ROCK 1,0
+        FLAT 4,0
+
+ALT18:  FLAT 9,0
+
+
+
+        ROCK 1,0
+        FLAT 7,0
+        ROCK 1,0
+        FLAT 6,0
+        ROCK 1,40
+        FLAT 5,40
+        ROCK 1,40
+        FLAT 19,40
+
+ALT19:  FLAT 6,40
+        ROCK 1,40
+        FLAT 5,80
+        ROCK 1,80
+        FLAT 15,80
+        ROCK 1,80
+        ROCK 1,120
+        FLAT 9,120
+        ROCK 3,80
+        FLAT 7,80
+
+ALT20:  FLAT 22,80
+        ROCK 1,80
+        ROCK 1,40
+        FLAT 6,40
+        ROCK 1,40
+        FLA 11,40
+        ROCK 2,0
+        FLAT 6,0
+
+ALT21:  FLAT 27,0
+        0,0,MAC1
+        0,0,MAC1
+        0,0,MAC1
+        0,0,MAC1
+        0,0,MAC1
+        0,2,MAC2
+        0,0,MAC1
+        0,0,MAC1
+        0,0,MAC1
+        0,0,MAC1
+        0,0,MAC1
+        FLAT 12,0
+
+ALT22:  FLAT 12,0
+        ROCK 1,0
+        FLAT 6,0
+        ROCK 1,40
+        FLAT 15,40
+        ROCK 3,40
+        ROCK 1,0
+        FLAT 11,0
+
+ALT23:  FLAT 12,0
+        ROCK 1,0
+        FLAT 6,0
+        ROCK 1,40
+        ROCK 1,80
+        ROCK 1,120
+        FLAT 5,120
+        ROCK 1,120
+        FLAT 6,120
+        ROCK 1,120
+        FLAT 3,120
+        ROCK 1,120
+        ROCK 1,80
+        ROCK 1,40
+        FLAT 7,40
+
+
+
+
+ALT24:  FLAT 4,40
+        ROCK 1,40
+        ROCK 1,0
+        FLAT 16,0
+        ROCK 3,0
+        ROCK 1,40
+        FLAT 5,40
+        ROCK 1,80
+        FLAT 10,80
+
+ALT25:  FLAT 10,80
+        ROCK 1,80
+        FLAT 3,80
+        ROCK 1,120
+        ROCK 1,40
+        ROCK 2,0
+        FLAT 12,0
+        ROCK 1,0
+        FLAT 19,0
+
+ALT26:  FLAT 5,0
+        ROCK 1,0
+        FLAT 8,0
+        ROCK 1,0
+        FLAT 9,0
+        ROCK 1,40
+        FLAT 13,40
+        ROCK 1,40
+        FLAT 11,40
+
+ALT27:  FLAT 3,40
+        ROCK 2,40
+        ROCK 1,0
+        FLAT 8,0
+        ROCK 3,0
+        FLAT 11,0
+        ROCK 2,0
+        FLAT 13,0
+        ROCK 1,0
+        ROCK 1,40
+        FLAT 4,40
+
+ALT28:  FLAT 6,40
+        ROCK 1,80
+        ROCK 1,120
+        FLAT 5,120
+        ROCK 3,120
+        FLAT 2,120
+        ROCK 1,160
+        FLAT 7,160
+        ROCK 5,160
+        FLAT 3,160
+        ROCK 1,160
+        ROCK 1,200
+        FLAT 3,200
+        ROCK 5,200
+        ROCK 1,240
+        ROCK 5,280
+
+
+
+
+ALT29:  FLAT 3,120
+        ROCK 6,160
+        FLAT 8,160
+        ROCK 3,160
+        ROCK 4,200
+        ROCK 3,240
+        FLAT 10,240
+        ROCK 8,240
+        FLAT 5,240
+
+ALT30:  ROCK 6,240
+        FLAT 5,240
+        ROCK 2,240
+        ROCK 1,200
+        ROCK 1,160
+        ROCK 1,120
+        FLAT 8,120
+        ROCK 1,120
+        ROCK 1,160
+        ROCK 1,200
+        ROCK 4,240
+        ROCK 5,280
+        ROCK 4,320
+        FLAT 5,320
+        ROCK 5,320
+
+
+
+        .RADIX 8
+
+
+; TERRAIN TABLE TO INDICATE WHICH CHARACTERS IN THE SHORT RANGE TABLES
+; SHOULD BE DISPLAYED. THE SECOND WORD OF THE S.R. TABLE IS AN INDEX
+; INTO THIS TABLE, OF THE CHARCTER TO DISPLAY AT THAT ALTITUDE.
+
+TERTBL: .BYTE '-,'*,'M,'W,'G
+        .EVEN
+
+
+
+
+
+;  *****************************************
+;  *                                       *
+;  *           MESSAGES                    *
+;  *                                       *
+;  *****************************************
+
+
+
+
+        .NLIST BEX
+        .ENABL LC
+
+COLMS:  .BYTE 7,7,7
+        .ASCII/WELL, YOU CERTAINLY BLEW THAT ONE!!!/<15><12>
+        .ASCII/FATAL COLLISION, THERE WERE NO SURVIVORS./<0>
+
+
+TOPMS:  .BYTE 7,7,7
+        .ASCIZ/IT'S TOO LATE TO RETURN TO EARTH./
+
+SIDEMS: .BYTE 7,7,7
+        .ASCIZ/YOU CLOD!! YOU'VE RUN INTO THE EDGE OF THE MOON!!/
+
+LANDMS: .ASCIZ/THAT'S ONE SMALL STEP FOR MAN, ONE GIANT LEAP FOR MANKIND./
+
+NOSRMS: .BYTE 7,7,7
+        .ASCIZ/SORRY, IT'S TOO ROCKY TO LAND HERE. COLLISION!!!/
+
+ROCKMS: .BYTE 7,7,7
+        .ASCIZ/YOU'VE CRASHED INTO A ROCK!!!/
+
+MTNMS:  .ASCIZ/CONGRATULATIONS, SIR EDMOND, YOU'VE REACHED THE TOP!/
+
+
+
+
+
+
+MACMS:  .ASCII/WO BIG MACS AND A CHEESEBURGER TO GO, PLEASE.../<15><12><0>
+
+
+MACMS2: .ASCIZ/OVER 34 TRILLION SOLD.../
+
+MACMS3: .BYTE 7,7,7
+        .ASCII/YOU JUST CRASHED INTO THE ONLY MACDONALDS ON THE MOON./<15><12>
+        .ASCIZ/YOU DISSOLVE INTO A HUGE POOL OF GREASE./
+
+WBSMS:  .ASCII/WELCOME TO THE LUNAR OFFICE OF WBS./<15><12>
+        .ASCIZ/YOUR AUDITS WILL BE RUN AUTOMATICALLY./
+
+WBSMS2: .BYTE 7,7,7 
+        .ASCIZ/MSR002-01: YOU'VE JUST CRASHED INTO WBS!!!/
+
+GASMS:  .ASCII/MEYER'S MOON MOBIL. LAST GAS UNTLI SATURN. FILL 'ER 'UP?/<15><12><0>
+GASMS2: .ASCIZ/HAPPY MOTORING!/
+
+GASMS3: .BYTE 7,7,7
+        .ASCII/YOU'VE CRASHED INTO MEYER'S MOON MOBIL./<15><12>
+        .ASCIZ/YOU GO UP IN A HUGE FIREBALL. YOU DESERVE IT!/
+
+
+
+
+WBMS:   .BYTE 33,133,61,73,65,62,146
+        .REPT 24.
+        .BYTE 174,33,133,104,33,133,120
+        .ENDR
+        .BYTE 0
+        .EVEN
+
+XVELMS: .BYTE 33,133,66,73,65,65,146
+        .ASCIZ/X VELOCITY:/
+YVELMS: .BYTE 33,133,67,73,65,65,146
+        .ASCIZ/Y VELOCITY:/
+XPOSMS: .BYTE 33,133,61,61,73,65,65,146
+        .ASCIZ/X POSITION:/
+YPOSMS: .BYTE 33,133,61,62,73,65,65,146
+        .ASCIZ/Y POSITION:/
+THRMS:  .BYTE 33,133,71,73,65,65,146
+        .ASCIZ/THRUST:/
+FUELMS: .BYTE 33,133,61,65,73,65,65,146
+        .ASCIZ/FUEL:/
+ALTMS:  .BYTE 33,133,61,63,73,65,65,146
+        .ASCIZ/ALTITUDE:/
+SPC:    .ASCIZ/      /
+
+        .EVEN
+
+CPMS:   .BYTE 33,133
+CPMS1:  .BLKB 6
+        0
+
+INITMS: .BYTE 33,74,33,133,61,73,61,110,33,133,60,112,33,133,77,67,154
+        .ASCII/                            WELCOME!!!/<15><12><15><12>
+        .ASCII/You are on board a lunar entry module (LEM), racing toward/<15><12>
+        .ASCII/the surface of the moon.  NASA has chosen to control the LEM/<15><12>
+        .ASCII/with an inferior brand of minicomputer, which has now failed./<15><12>
+        .ASCII/You are therefore chrged with the task of landing your craft/<15><12>
+        .ASCII/manually.  You have the following controls:/<15><12><15><12>
+        .ASCII/UP ARROW   - increases the thrust output of your rocket/<15><12>
+        .ASCII/DOWN ARROW - decreases the thrust output of your rocket/<15><12>
+        .ASCII/LEFT ARROW - rotates the direction of rocket firing counterclockwise./conuter
+        .ASCII/RIGHT ARROW- rotates the direction of rotates firing clockwise/<15><12>
+        .ASCII/1 - 9      - sets the delay for display of vital stats (try 6 if remote)/<15><12>
+        .ASCII/SPACE      - starts a new game (only after old game finishes/<15><12>
+        .ASCII/CONTROL-C  - exits the program, returns to monior/<15><12><15><12>
+        .ASCII/You're on your own...  GOOD LUCK!/<15><12><15><12>
+        .ASCII/Press SPACE to begin./<15><12><0>
+
+
+VT52:   .BYTE 33,133,77,62,154,0
