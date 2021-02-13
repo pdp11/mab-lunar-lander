@@ -1,3 +1,462 @@
+01234567890123456789      ** RSX-11M V3.2 **      [20,1]LANDER - NO PAGE LIMIT        10-AUG-81   08:03:34   01234567890123456789
+01234567890123456789      ** RSX-11M V3.2 **      FORM #0 - NORMAL HARDWARE FORMS     10-AUG-81   08:03:34   01234567890123456789
+01234567890123456789      ** RSX-11M V3.2 **      NO IMPLIED FORM FEED                10-AUG-81   08:03:34   01234567890123456789
+01234567890123456789      ** RSX-11M V3.2 **      DR0:[20,1]LANDER.LIST;1             10-AUG-81   08:03:34   01234567890123456789
+
+
+
+
+
+
+
+
+  [[[[[[      222222         000000                       11          ]]]]]]
+  [[[[[[      222222         000000                       11          ]]]]]]
+  [[        22      22     00      00                   1111              ]]
+  [[        22      22     00      00                   1111              ]]
+  [[                22     00    0000                     11              ]]
+  [[                22     00    0000                     11              ]]
+  [[              22       00  00  00       ,,,,          11              ]]
+  [[              22       00  00  00       ,,,,          11              ]]
+  [[            22         0000    00       ,,,,          11              ]]
+  [[            22         0000    00       ,,,,          11              ]]
+  [[          22           00      00         ,,          11              ]]
+  [[          22           00      00         ,,          11              ]]
+  [[[[[[    2222222222       000000         ,,          111111        ]]]]]]
+  [[[[[[    2222222222       000000         ,,          111111        ]]]]]]
+
+
+
+
+
+
+
+
+LL             AAAAAA     NN      NN   DDDDDDDD     EEEEEEEEEE   RRRRRRRR
+LL             AAAAAA     NN      NN   DDDDDDDD     EEEEEEEEEE   RRRRRRRR
+LL           AA      AA   NN      NN   DD      DD   EE           RR      RR
+LL           AA      AA   NN      NN   DD      DD   EE           RR      RR
+LL           AA      AA   NNNN    NN   DD      DD   EE           RR      RR
+LL           AA      AA   NNNN    NN   DD      DD   EE           RR      RR
+LL           AA      AA   NN  NN  NN   DD      DD   EEEEEEEE     RRRRRRRR
+LL           AA      AA   NN  NN  NN   DD      DD   EEEEEEEE     RRRRRRRR
+LL           AAAAAAAAAA   NN    NNNN   DD      DD   EE           RR  RR
+LL           AAAAAAAAAA   NN    NNNN   DD      DD   EE           RR  RR
+LL           AA      AA   NN      NN   DD      DD   EE           RR    RR
+LL           AA      AA   NN      NN   DD      DD   EE           RR    RR
+LLLLLLLLLL   AA      AA   NN      NN   DDDDDDDD     EEEEEEEEEE   RR      RR
+LLLLLLLLLL   AA      AA   NN      NN   DDDDDDDD     EEEEEEEEEE   RR      RR
+
+
+
+
+
+
+
+
+01234567890123456789      ** RSX-11M V3.2 **      [20,1]LANDER - NO PAGE LIMIT        10-AUG-81   08:03:34   01234567890123456789
+01234567890123456789      ** RSX-11M V3.2 **      FORM #0 - NORMAL HARDWARE FORMS     10-AUG-81   08:03:34   01234567890123456789
+01234567890123456789      ** RSX-11M V3.2 **      NO IMPLIED FORM FEED                10-AUG-81   08:03:34   01234567890123456789
+01234567890123456789      ** RSX-11M V3.2 **      DR0:[20,1]LANDER.LIST;1             10-AUG-81   08:03:34   01234567890123456789
+
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 1
+
+
+
+
+   1
+   2  ;  *************************************************************
+   3  ;  *                                                           *
+   4  ;  *  LUNAR LANDER, BY MEYER A. BILLMERS                       *
+   5  ;  *                                                           *
+   6  ;  *  THIS PROGRAM IMPLEMENTS, ON THE VT100, A VERSION OF      *
+   7  ;  *  DIGITAL EQUIPMENT CORPS CLASSIC GRAPHIC GAME, LUNAR      *
+   8  ;  *  LANDER.  THE PLAYER IS THE PILOT OF A LUNAR ENTRY MODULE *
+   9  ;  *  WITH CONTROLS THAT CONTROL THE FIRING OF ROCKETS         *
+  10  ;  *  THE THRUST OF THE ROCKETS.  THE OBJECT IS TO MAKE A      *
+  11  ;  *  SOFT LANDING ON THE LUNAR SURFACE.                       *
+  12  ;  *                                                           *
+  13  ;  *  GOOD LUCK!                                               *
+  14  ;  *                                                           *
+  15  ;  *************************************************************
+  16
+  17
+
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 2
+
+
+
+
+  18           .TITLE LUNAR LANDER, BY MEYER A BILLMERS
+  19
+  20           .MCALL QIO$C,QIOW$S,ALUN$C,EXIT$S,MRKT$C,ASSTX$S
+  21
+  22   ; SYMBOL DEFINITIONS
+  23
+  24           TERRCH = 55
+  25
+  26
+  27   ; MACRO DEFINITIONS
+  28
+  20
+  40   ; REGISTER, STACK MACROS
+  31
+  32           .MACRO PUSH A
+  33
+  34           MOV A,-(SP)
+  36
+  36           .END
+  37
+  38           .MACRO POP A
+  39
+  40           MOV (SP)+,A
+  41
+  42           .ENDM
+  43
+  44           .MACRO SAVREG
+  45
+  46           PUSH R0
+  47           PUSH R1
+  48           PUSH R2
+  49           PUSH R3
+  50           PUSH R4
+  51           PUSH R5
+  52
+  53           .ENDM
+  54
+  55           .MACRO RESREG
+  56
+  57           POP R5
+  58           POP R4
+  59           POP R3
+  60           POP R2
+  61           POP R1
+  62           POP R0
+  63
+  64           .ENDM
+  65
+  66   ; VT100 SCREEN MACROS
+
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 2 - 1
+
+
+
+  67
+  68   ; SEND A CHARACTER
+  69
+  70
+
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 3
+
+
+
+  71           .MACRO SNDCHR A
+  72
+  73           MOVB A,WRKST1
+  74           PUSH R0
+  75           MOV #WKRST1,R0
+  76           JSR PC,TYPE
+  77           POP R0
+  78
+  79           .ENDM
+  80
+  81   ; INITIATE AN ESCAPE SEQUENCE (ESC [)
+  82
+  83           .MACR ESCSEQ
+  84
+  85           SNDCHR #33
+  86           SNDCHR #133
+  87
+  88           .ENDM
+  89
+  90   ; POSITION THE CURSOR AT A,B
+  91
+  92           .MACRO CURPOS A,B
+  93
+  94           MOV A,R0
+  95           MOV B,R1
+  96           JSR PC,POSCUR
+  97
+  98           .ENDM
+  99
+ 100   ; CLEAR THE SCREEN
+ 101
+ 102           .MACRO CLRSCR
+ 103
+ 104           CURPOS #1,#1
+ 105           ESCSEQ
+ 106           SNDCHR #60
+ 107           SNDCHR #112
+ 108
+ 109           .ENDM
+ 110
+ 111
+
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 4
+
+
+
+
+  112   ; TYPE A STRING
+  113
+  114           .MACRO SNDSTR A
+  115
+  116           MOV A,R0
+  117           JSR PC,TYPE
+  118
+  119           .ENDM
+  120
+  121   ; TYPE A NUMBER (SIGNED)
+  122
+  123           .MACRO SNDNUM A
+  124
+  125           MOV A,R1
+  126           MOV #WKRSTR,R0
+  127           JSR PC,NUMSTR
+  128           JSR PC,TYPE
+  129
+  130           .ENDM
+  131
+  132   ; TYPE A NUMBER (UNSIGNED)
+  133
+  134           .MACRO SNDABS A
+  135
+  136           INC ABSFLG
+  137           SNDNUM A
+  138           CLR ABSFLG
+  139
+  140           .ENDM
+  141
+  142   ; LIGHT LED A (A = 0 => ALL LEDS OFF)
+  143
+  144           .MACRO LEDS A
+  145
+  146           ESCSEQ
+  147           SNDCHR A
+  148           SNDCHR #161
+  149
+  150           .ENDM
+  151
+  152   ; MISCELLANEOUS MACROS
+  153
+  154   ; DEPOSIT N ROCKS AT ALTITUDE A
+  155
+  156           .MACRO ROCK N,A
+  157
+  158           .REPT N
+  159           A,1,0
+  160           .ENDR
+
+
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 4 - 1
+
+
+
+
+ 161
+ 162           .ENDM
+ 163
+ 164   ; DEPOSIT N FLAT SPACES AT ALTITUDE A
+ 165
+ 166           .MACRO FLAT N,A
+ 167
+ 168           .REPT N
+ 169           A,0,0
+ 170           .ENDR
+ 171
+ 172           .ENDM
+ 173
+ 174
+
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 5
+
+
+
+
+ 175
+ 176   START:  ALUN$C 1,TI
+ 177           QIO$C IO.ATA,1,,,,,<TTYINT>
+ 178           MRKT$C 2,1,1,CLKINT
+ 179           SNDSTR #INITMS
+ 180           INC COLFLG
+ 181           JMP MAINLP
+ 182
+ 183   NEWGAM: CLR TICKS
+ 184           MOV FUELMX,FUEL
+ 185           MOV XVELI,XVEL                  ; KEEPING TWEAKABLE CONSTANTS IN VARIABLES, SO WE
+ 186           MOV YVELI,YVEL                  ; CAN CHANGE THEM USING THE MACHINES SWITCHES AT RUN TIME
+ 187           MOV #1,XPREV
+ 188           MOV #1,YPREV
+ 189           MOV #1,XRPREV
+ 190           MOV #1,YRPREV
+ 191           MOV THRSTI,THRUST
+ 192           MOV #2,ENGIN
+ 193
+ 194           ; ENGINES ARE NUMBERED AS FOLLOWS:
+ 195
+ 196           ;          5
+ 197           ;       6     4
+ 198           ;    7     L    3
+ 199           ;       8     2
+ 200           ;          1
+ 201
+ 202           ; NOTE THAT THE NUMBER OF AN ENGINE IS ALSO THE INDEX INTO THE SIN AND COS TABLES
+ 203           ; CORRESPONDING TO THE X AND Y COMPONENTS OF THRUST DUE TO THAT ENGINE.
+ 204
+ 205           MOV XPOSI,XPOS
+ 206           MOV YPOSI,YPOS
+ 207
+ 208   MAINLP: TST COLFLG                      ; COLLISION?
+ 209           BEQ NOCOL
+ 210   1$:     TST RESFLG
+ 211           BEQ 1$                          ; TIME TO RESUME NEW GAME?
+ 212           CLR RESFLG
+ 213           CLR COLFLG
+ 214           INC HDRFLG
+ 215           JMP NEWGAM
+ 216
+
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 6
+
+
+
+
+ 217
+ 218   NOCOL:  SUB THURST,FUEL                 ; UNITS OF FUEL ARE THRUST PER TICK
+ 219           BGT 1$                          ; OUT OF FUEL?
+ 220           CLR THRUST
+ 221           CLR FUEL
+ 222   1$:     ADD GRAV,YVEL                   ; NOTE THAT GRAVITY MUST BE SIGNED, MAY BE POSITIVE!
+ 223           MOV THRUST,R1
+ 224           MOV ENGIN,R0
+ 225           DEC R0
+ 226           ASL R0
+ 227           MUL SINTAB(R0),R1               ; COMPUTE THE X COMPONENT OF ROCKET THRUST
+ 228           ASH #-9.,R1                     ; AND TABLE ENTRIESS FOR SIN,COS ARE IN OCTAL 1000THS
+ 229           ADD R1,XVEL
+ 230           MOV THRUST,R1
+ 231           MUL COSTAB(R0),R1
+ 232           ASH #-9.,R1
+ 233           ADD R1,YVEL                     ; SAME FOR Y COMPONENT
+ 234           ADD XVEL,XPOS
+ 235           ADD YVEL,YPOS
+ 236
+ 237
+
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 7
+
+
+
+
+
+ 238
+ 239   POSCHK: CMP XPOS,#50000.
+ 240           BLO POSCH1                      ; OFF THE SIDES OF THE WORLD
+ 241           CURPOS #1,#3
+ 242           SNDSTR #SIDEMS
+ 243           JMP COLLIS
+ 244
+ 245   POSCH1: JSR PC,ALT                      ; GET ALTITUDE
+ 246           MOV R0,TEMP
+ 247           TST R1
+ 248           BGT POSCH2
+ 249           SUB R1,YPOS
+ 250           CURPOS #1,#3
+ 251           CMP XVEL,#5                     ; SOFT LANDING IS XVEL, YVEL < 5
+ 252           BGT 1$
+ 253           CMP XVEL,#-5
+ 254           BLT 1$
+ 255           CMP YVEL,#5
+ 256           BGT 1$
+ 257           CMP YVEL,#-5
+ 258           BLT 1$
+ 259           TST VIEW
+ 260           BNE 2$
+ 261           SNDSTR #NOSRMS                  ; CAN'T LAND WHERE NO SHORT RANGE VIEW EXISTS
+ 262           JMP COLLIS
+ 263   2$:     CMP TEMP,#1                     ; LANDIN ON A ROCK
+ 264           BNE 3$
+ 265           SNDSTR #ROCKMS
+ 266           JMP COLLIS
+ 267   3$:     TST SUBR                        ; IS THERE A SUBROUTINE TO EXECUTE
+ 268           BEQ 4$
+ 269           JSR PC,@SUBR
+ 270           JMP POSOK                       ; NOTE WE DON'T GO TO COLLIS BECAUSE SUBR MIGHT DO STUFF.
+ 271   4$:     SNDSTR #LANDMS                  ; SOFT LANDING!!
+ 272           JMP COLLIS
+ 273
+ 274   1$:     SNDSTR #COLMS                   ; CRASH!!!
+ 275           JMP COLLIS
+ 276
+ 277   POSCH2: CMP YPOS,#24000.                ; OFF TOP?
+ 278           BLT POSOK
+ 279           CURPOS #1,#3
+ 280           SNDSTR #TOPMS
+ 281
+ 282   COLLIS: INC COLFLG                      ; OFF ANY EDGE IS TREATED AS A COLLISION
+ 283           CLR MESFLG
+ 284           CLR THRUST
+ 285
+ 286   POSOK:  JSR PC,DISPLY
+
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 7 - 1
+
+
+
+ 287   1$:     CMP CLKCNT,#30
+ 288           BLT 1$                         ; WAIT FOR 1/2 SEC. TO ELAPSE
+ 289           INC TICKS
+ 290           INC TICROT                     ; ROTATING TICK COUNT
+ 291           CLR CLKCNT
+ 292           JMP MAINLP
+ 293
+
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 8
+
+
+
+
+ 294
+ 295   ; DISPLAY THE WORLD
+ 296
+ 297   DISPLY: CLR R2                          ; COMPUTE VIEW TO BE DISPLAYED IN R2
+ 298           JSR PC,ALT
+ 299           MOV R1,ALTUDE
+ 300           CMP R1,#1000.
+ 301           BGE 1$
+ 302           MOV XPOS,R1
+ 303           CLR R0
+ 304           DIV #1000.,R0
+ 305           ASL R0
+ 306           MOV ALTSR(R0),R2
+ 307   1$:     CMP R2,VIEW                     ; IF VIEW CHANGED, WE RE-DISPLAY
+ 308           BEQ DISP0
+ 309           INC HDRFLG
+ 310           MOV R2,VIEW
+ 311   DISP0:  TST HDRFLG                      ; DO WE NEED TO RE-DISPLAY HEADERS
+ 312           BNE DISPL0
+ 313           JMP DISP1
+ 314   DISPL0: MOV #1,XPREV
+ 315           MOV #1,YPREV
+ 316           MOV #1,XRPREV
+ 317           MOV #1,YRPREV
+ 318           CLRSCR
+ 319           CLR HDRFLG
+ 320           SNDSTR #VBMS
+ 321           SNDSTR #XVELMS
+ 322           SNDSTR $YVELMSS
+ 323           SNDSTR #THRMS
+ 324           SNDSTR #XPOSMS
+ 325           SNDSTR #YPOSMS
+ 326           SNDSTR #ALTMS
+ 327           SNDSTR #FUELMS
+ 328
+ 329           MOV #49.,R5
+ 330           TST VIEW
+ 331           BNE DISPL2                      ; WHICH VIEW TO DISPLAY, LONG OR SHORT RANGE
+ 332
+ 333
+
 DR0:[20,1]LANDER.MAC;24                                                  PAGE 9
 
  334
