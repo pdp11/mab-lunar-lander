@@ -1,0 +1,19 @@
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 4 - 1
+
+
+
+
+  161
+  162           .ENDM
+  163
+  164   ; DEPOSIT N FLAT SPACES AT ALTITUDE A
+  165
+  166           .MACRO FLAT N,A
+  167
+  168           .REPT N
+  169           A,0,0
+  170           .ENDR
+  171
+  172           .ENDM
+  173
+  174

@@ -1,0 +1,22 @@
+DR0:[20,1]LANDER.MAC;24                                                                                                        PAGE 1
+
+
+
+
+    1
+    2  ;  *************************************************************
+    3  ;  *                                                           *
+    4  ;  *  LUNAR LANDER, BY MEYER A. BILLMERS                       *
+    5  ;  *                                                           *
+    6  ;  *  THIS PROGRAM IMPLEMENTS, ON THE VT100, A VERSION OF      *
+    7  ;  *  DIGITAL EQUIPMENT CORPS CLASSIC GRAPHIC GAME, LUNAR      *
+    8  ;  *  LANDER.  THE PLAYER IS THE PILOT OF A LUNAR ENTRY MODULE *
+    9  ;  *  WITH CONTROLS THAT CONTROL THE FIRING OF ROCKETS         *
+   10  ;  *  THE THRUST OF THE ROCKETS.  THE OBJECT IS TO MAKE A      *
+   11  ;  *  SOFT LANDING ON THE LUNAR SURFACE.                       *
+   12  ;  *                                                           *
+   13  ;  *  GOOD LUCK!                                               *
+   14  ;  *                                                           *
+   15  ;  *************************************************************
+   16
+   17
