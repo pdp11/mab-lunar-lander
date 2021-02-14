@@ -65,20 +65,20 @@ DR0:[20,1]LANDER.MAC;24                                                         
 
 
    1
-   2  ;  *************************************************************
-   3  ;  *                                                           *
-   4  ;  *  LUNAR LANDER, BY MEYER A. BILLMERS                       *
-   5  ;  *                                                           *
-   6  ;  *  THIS PROGRAM IMPLEMENTS, ON THE VT100, A VERSION OF      *
-   7  ;  *  DIGITAL EQUIPMENT CORPS CLASSIC GRAPHIC GAME, LUNAR      *
-   8  ;  *  LANDER.  THE PLAYER IS THE PILOT OF A LUNAR ENTRY MODULE *
-   9  ;  *  WITH CONTROLS THAT CONTROL THE FIRING OF ROCKETS         *
-  10  ;  *  THE THRUST OF THE ROCKETS.  THE OBJECT IS TO MAKE A      *
-  11  ;  *  SOFT LANDING ON THE LUNAR SURFACE.                       *
-  12  ;  *                                                           *
-  13  ;  *  GOOD LUCK!                                               *
-  14  ;  *                                                           *
-  15  ;  *************************************************************
+   2   ;  *************************************************************
+   3   ;  *                                                           *
+   4   ;  *  LUNAR LANDER, BY MEYER A. BILLMERS                       *
+   5   ;  *                                                           *
+   6   ;  *  THIS PROGRAM IMPLEMENTS, ON THE VT100, A VERSION OF      *
+   7   ;  *  DIGITAL EQUIPMENT CORPS CLASSIC GRAPHIC GAME, LUNAR      *
+   8   ;  *  LANDER.  THE PLAYER IS THE PILOT OF A LUNAR ENTRY MODULE *
+   9   ;  *  WITH CONTROLS THAT CONTROL THE FIRING OF ROCKETS         *
+  10   ;  *  THE THRUST OF THE ROCKETS.  THE OBJECT IS TO MAKE A      *
+  11   ;  *  SOFT LANDING ON THE LUNAR SURFACE.                       *
+  12   ;  *                                                           *
+  13   ;  *  GOOD LUCK!                                               *
+  14   ;  *                                                           *
+  15   ;  *************************************************************
   16
   17
 
@@ -89,7 +89,7 @@ DR0:[20,1]LANDER.MAC;24                                                         
 
   18           .TITLE LUNAR LANDER, BY MEYER A BILLMERS
   19
-  20           .MCALL QIO$C,QIOW$S,ALUN$C,EXIT$S,MRKT$C,ASSTX$S
+  20           .MCALL QIO$C,QIOW$S,ALUN$C,EXIT$S,MRKT$C,ASTX$S
   21
   22   ; SYMBOL DEFINITIONS
   23
@@ -105,7 +105,7 @@ DR0:[20,1]LANDER.MAC;24                                                         
   33
   34           MOV A,-(SP)
   36
-  36           .END
+  36           .ENDM
   37
   38           .MACRO POP A
   39
@@ -154,7 +154,7 @@ DR0:[20,1]LANDER.MAC;24                                                         
   72
   73           MOVB A,WRKST1
   74           PUSH R0
-  75           MOV #WKRST1,R0
+  75           MOV #WRKST1,R0
   76           JSR PC,TYPE
   77           POP R0
   78
@@ -162,7 +162,7 @@ DR0:[20,1]LANDER.MAC;24                                                         
   80
   81   ; INITIATE AN ESCAPE SEQUENCE (ESC [)
   82
-  83           .MACR ESCSEQ
+  83           .MACRO ESCSEQ
   84
   85           SNDCHR #33
   86           SNDCHR #133
@@ -211,7 +211,7 @@ DR0:[20,1]LANDER.MAC;24                                                         
   123           .MACRO SNDNUM A
   124
   125           MOV A,R1
-  126           MOV #WKRSTR,R0
+  126           MOV #WRKSTR,R0
   127           JSR PC,NUMSTR
   128           JSR PC,TYPE
   129
@@ -322,7 +322,7 @@ DR0:[20,1]LANDER.MAC;24                                                         
 
 
  217
- 218   NOCOL:  SUB THURST,FUEL                 ; UNITS OF FUEL ARE THRUST PER TICK
+ 218   NOCOL:  SUB THRUST,FUEL                 ; UNITS OF FUEL ARE THRUST PER TICK
  219           BGT 1$                          ; OUT OF FUEL?
  220           CLR THRUST
  221           CLR FUEL
@@ -394,7 +394,7 @@ DR0:[20,1]LANDER.MAC;24                                                         
  280           SNDSTR #TOPMS
  281
  282   COLLIS: INC COLFLG                      ; OFF ANY EDGE IS TREATED AS A COLLISION
- 283           CLR MESFLG
+ 283           CLR RESFLG
  284           CLR THRUST
  285
  286   POSOK:  JSR PC,DISPLY
@@ -442,9 +442,9 @@ DR0:[20,1]LANDER.MAC;24                                                         
  317           MOV #1,YRPREV
  318           CLRSCR
  319           CLR HDRFLG
- 320           SNDSTR #VBMS
+ 320           SNDSTR #WBMS
  321           SNDSTR #XVELMS
- 322           SNDSTR $YVELMSS
+ 322           SNDSTR #YVELMS
  323           SNDSTR #THRMS
  324           SNDSTR #XPOSMS
  325           SNDSTR #YPOSMS
@@ -477,11 +477,11 @@ DR0:[20,1]LANDER.MAC;24                                                  PAGE 9
  349   DSPL1A: JMP DISP1
  350
  351   DISPL2: MOV R5,R1                   ; LOOP TO DISPLAY THE SURFACE (SHORT RANGE VIEW).
- 352           MUL #6,,R1
+ 352           MUL #6,R1
  353           ADD VIEW,R1
  354           MOV (R1)+,R3
  355           MOV (R1),TEMP               ; SAVE THE TERRAIN CHARACTER IN TEMP
- 356           TEMP,R1
+ 356           MOV TEMP,R1
  357           MOVB TERTBL(R1),TEMP
  358           CLR R2
  359           DIV #40.,R2
@@ -647,7 +647,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 12
  504           MOV XPOS,R5
  505           SUB R3,R5
  506           CLR R4
- 507           DIV #10.R4
+ 507           DIV #20.,R4
  508           MOV R4,R3
  509           MUL #6,R3
  510           ADD R3,R2
@@ -692,7 +692,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 13
  543           INC BUFCTR
  544           BR 1$
  545
- 546   2$:     QIOQ$S :IO.WVB,#1,#1,,,,<BUFPTRF,BUFCTR>
+ 546   2$:     QIOW$S #IO.WVB,#1,#1,,,,<BUFPTR,BUFCTR>
  547           RTS PC
  548
  549
@@ -713,7 +713,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 13
  564   1$:     MOV R1,R3
  565           CLR R2
  566   NS1:    DIV #10.,R2
- 567           ADD $60,R3
+ 567           ADD #60,R3
  568           PUSH R3
  569           TST R2
  570           BEQ NS2
@@ -775,7 +775,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 14
  620           CLR THRUST
  621           RTS PC
  622
- 623   GAS1:   SNTSTR #GASMS
+ 623   GAS1:   SNDSTR #GASMS
  624           CLR CLKCNT
  625   1$:     CMP CLKCNT,#240.
  626           BLT 1$
@@ -823,7 +823,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 15
  662           MOV #WRKSTR,R0
  663           JSR PC,NUMSTR
  664           TSTB WRKSTR
- 665           BEQ BC2
+ 665           BEQ PC2
  666           MOVB WRKSTR,(R2)+
  667           TSTB WRKSTR+1
  668           BEQ PC2
@@ -860,7 +860,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 16
  696
  697
  698   TTYINT: PUSH R0
- 69O           MOVE 2(SP),R0
+ 699           MOV 2(SP),R0
  700           BIC #177400,R0
  701           CMP R0,#3
  702           BNE TTYI1
@@ -874,7 +874,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 16
  710           CMP THRUST,#15.
  711           BLE 1$
  712           MOV #15.,THRUST
- 713   1$:     JMP TTYION
+ 713   1$:     JMP TTYIDN
  714
  715   TTYI2:  CMP R0,#102                 ; DOWN-ARROW INCREASES THRUST
  716           BNE TTYI3
@@ -901,9 +901,9 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 17
  734           DEC ENGIN
  735           BGT 1$
  736           MOV #8.,ENGIN
- 737   1$:     JMP TTIDN
+ 737   1$:     JMP TTYIDN
  738
- 739   TTYI5:  CMP R0,$40
+ 739   TTYI5:  CMP R0,#40
  740           BNE TTYI6
  741           INC RESFLG
  742           JMP TTYIDN
@@ -1004,8 +1004,8 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 20
  828           ALT13,ALT14,0,0,0,ALT15,0,0,0,ALT16,ALT17,ALT18,ALT19,ALT20,ALT21,ALT22
  829           ALT23,ALT24,ALT25,ALT26,ALT27,ALT28,0,0,0,0,0,ALT29,ALT30,0
  830
- 831   ; SHORT RANGE ALTITUDE RABLES.  EACH TABLE IS POITED TO BY AN ENTRY IN ALTSR,
- 832   ; AND CONSITS OF 3 WORDS FOR EACH X GRADATION: ALTITUDE, CHRACTER TO DISPLAY
+ 831   ; SHORT RANGE ALTITUDE TABLES.  EACH TABLE IS POINTED TO BY AN ENTRY IN ALTSR,
+ 832   ; AND CONSISTS OF 3 WORDS FOR EACH X GRADATION: ALTITUDE, CHARACTER TO DISPLAY
  833   ; (THIS SECOND WORD IS AN INDEX INTO TERTBL) AND POINTER TO SUBROUTINE TO CALL
  834   ; IF A LANDING OCCURS THERE. AN X GRADATION HERE IS 20, AND A Y GRADATION
  835   ; IS 40.
@@ -1028,7 +1028,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 20
  852           ROCK 2,120
  853           ROCK 2,80
  854           ROCK 2,40
- 855           FLAG 10,40
+ 855           FLAT 10,40
  856           FLAT 8,0
  857           ROCK 6,40
  858
@@ -1036,7 +1036,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 20
  860           FLAT 8,40
  861           FLAT 7,0
  862           ROCK 1,0
- 863           FLAG 3,0
+ 863           FLAT 3,0
  864           ROCK 2,0
  865           FLAT 4,0
  866           0,0,GAS1
@@ -1067,7 +1067,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 21
  885           ROCK 1,80
  886           FLAT 5,80
  887           ROCK 1,80
- 888           FLAG 5,80
+ 888           FLAT 5,80
  889           ROCK 1,120
  890           ROCK 15,160
  891
@@ -1078,10 +1078,10 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 21
  896           ROCK 2,120
  897           FLAT 5,80
  898           ROCK 2,80
- 899           FLAG 5,40
+ 899           FLAT 5,40
  900           FLAT 3,0
  901           ROCK 1,40
- 902           FLAG 8,40
+ 902           FLAT 8,40
  903           ROCK 6,80
  904           FLAT 6,80
  905
@@ -1217,7 +1217,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 24
 1023           ROCK 2,360
 1024           ROCK 1,400
 1025           ROCK 2,440
-1026           RCK 1,480
+1026           ROCK 1,480
 1027           ROCK 1,520
 1028           ROCK 1,600
 1029           ROCK 2,640
@@ -1380,7 +1380,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 27
 1174           ROCK 1,40
 1175           FLAT 6,40
 1176           ROCK 1,40
-1177           FLA 11,40
+1177           FLAT 11,40
 1178           ROCK 2,0
 1179           FLAT 6,0
 1180
@@ -1531,7 +1531,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 29
 1313
 1314   ; TERRAIN TABLE TO INDICATE WHICH CHARACTERS IN THE SHORT RANGE TABLES
 1315   ; SHOULD BE DISPLAYED. THE SECOND WORD OF THE S.R. TABLE IS AN INDEX
-1316   ; INTO THIS TABLE, OF THE CHARCTER TO DISPLAY AT THAT ALTITUDE.
+1316   ; INTO THIS TABLE, OF THE CHARACTER TO DISPLAY AT THAT ALTITUDE.
 1317
 1318   TERTBL: .BYTE '-,'*,'M,'W,'G
 1319           .EVEN
@@ -1582,7 +1582,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 30
 DR0:[20,1]LANDER.MAC;24                                                 PAGE 31
 
 1360
-1361   MACMS:  .ASCII/WO BIG MACS AND A CHEESEBURGER TO GO, PLEASE.../<15><12><0>
+1361   MACMS:  .ASCII/TWO BIG MACS AND A CHEESEBURGER TO GO, PLEASE.../<15><12><0>
 1362
 1363
 1364   MACMS2: .ASCIZ/OVER 34 TRILLION SOLD.../
@@ -1597,7 +1597,7 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 31
 1373   WBSMS2: .BYTE 7,7,7 
 1374           .ASCIZ/MSR002-01: YOU'VE JUST CRASHED INTO WBS!!!/
 1375
-1376   GASMS:  .ASCII/MEYER'S MOON MOBIL. LAST GAS UNTLI SATURN. FILL 'ER 'UP?/<15><12><0>
+1376   GASMS:  .ASCII/MEYER'S MOON MOBIL. LAST GAS UNTIL SATURN. FILL 'ER 'UP?/<15><12><0>
 1377   GASMS2: .ASCIZ/HAPPY MOTORING!/
 1378
 1379   GASMS3: .BYTE 7,7,7
@@ -1643,12 +1643,12 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 32
 1416           .ASCII/You are on board a lunar entry module (LEM), racing toward/<15><12>
 1417           .ASCII/the surface of the moon.  NASA has chosen to control the LEM/<15><12>
 1418           .ASCII/with an inferior brand of minicomputer, which has now failed./<15><12>
-1419           .ASCII/You are therefore chrged with the task of landing your craft/<15><12>
+1419           .ASCII/You are therefore charged with the task of landing your craft/<15><12>
 1420           .ASCII/manually.  You have the following controls:/<15><12><15><12>
 1421           .ASCII/UP ARROW   - increases the thrust output of your rocket/<15><12>
 1422           .ASCII/DOWN ARROW - decreases the thrust output of your rocket/<15><12>
-1423           .ASCII/LEFT ARROW - rotates the direction of rocket firing counterclockwise./conuter
-1424           .ASCII/RIGHT ARROW- rotates the direction of rotates firing clockwise/<15><12>
+1423           .ASCII/LEFT ARROW - rotates the direction of rocket firing counterclockwise/<15><12>
+1424           .ASCII/RIGHT ARROW- rotates the direction of rocket firing clockwise/<15><12>
 1425           .ASCII/1 - 9      - sets the delay for display of vital stats (try 6 if remote)/<15><12>
 1426           .ASCII/SPACE      - starts a new game (only after old game finishes/<15><12>
 1427           .ASCII/CONTROL-C  - exits the program, returns to monior/<15><12><15><12>
@@ -1657,12 +1657,5 @@ DR0:[20,1]LANDER.MAC;24                                                 PAGE 32
 1430
 1431
 1432   VT52:   .BYTE 33,133,77,62,154,0
-
-(setq comment-column 43)
-(defun comment () (interactive) (move-to-column comment-column t) (insert "; "))
-(local-set-key ";" 'comment)
-(defun new-page (n start-line end-line)
-  (insert (format "DR0:[20,1]LANDER.MAC;24                                                 PAGE %s\n\n" n))
-  (loop for i from start-line to end-line do
-    (insert (format "%d           \n" i)))
-  (insert ""))
+1433
+1434           .END START
