@@ -516,7 +516,7 @@ ALT:	PUSH R2
 	MOV XPOS,R5
 	SUB R3,R5
 	CLR R4
-	DIV #10,R4
+	DIV #20.,R4
 	MOV R4,R3
 	MUL #6,R3
 	ADD R3,R2
@@ -849,7 +849,7 @@ ALTSR:	0,0,ALT1,ALT2,ALT3,0,0,ALT4,ALT5,ALT6,0,0,0,0,ALT7,ALT8,ALT9,ALT10,ALT11,
 	ALT23,ALT24,ALT25,ALT26,ALT27,ALT28,0,0,0,0,0,ALT29,ALT30,0
 
 ; SHORT RANGE ALTITUDE TABLES.  EACH TABLE IS POINTED TO BY AN ENTRY IN ALTSR,
-; AND CONSITS OF 3 WORDS FOR EACH X GRADATION: ALTITUDE, CHARACTER TO DISPLAY
+; AND CONSISTS OF 3 WORDS FOR EACH X GRADATION: ALTITUDE, CHARACTER TO DISPLAY
 ; (THIS SECOND WORD IS AN INDEX INTO TERTBL) AND POINTER TO SUBROUTINE TO CALL
 ; IF A LANDING OCCURS THERE. AN X GRADATION HERE IS 20, AND A Y GRADATION
 ; IS 40.
@@ -1453,7 +1453,7 @@ INITMS:	.BYTE 33,74,33,133,61,73,61,110,33,133,60,112,33,133,77,67,154
 	.ASCII/UP ARROW   - increases the thrust output of your rocket/<15><12>
 	.ASCII/DOWN ARROW - decreases the thrust output of your rocket/<15><12>
 	.ASCII/LEFT ARROW - rotates the direction of rocket firing counterclockwise/<15><12>
-	.ASCII/RIGHT ARROW- rotates the direction of rotates firing clockwise/<15><12>
+	.ASCII/RIGHT ARROW- rotates the direction of rocket firing clockwise/<15><12>
 	.ASCII/1 - 9      - sets the delay for display of vital stats (try 6 if remote)/<15><12>
 	.ASCII/SPACE      - starts a new game (only after old game finishes/<15><12>
 	.ASCII/CONTROL-C  - exits the program, returns to monior/<15><12><15><12>
